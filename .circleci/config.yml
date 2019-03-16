@@ -9,4 +9,7 @@ jobs:
 
     - run:
         name: Transpile Stack
-        command: ./kloudformation.sh
+        command: ./kloudformation.sh Stack.kt Stack template.yml
+
+    - store_artifacts:
+        path: template.yml
