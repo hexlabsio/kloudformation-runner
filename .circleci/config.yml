@@ -1,0 +1,12 @@
+version: 2
+jobs:
+  build:
+    machine:
+      enabled: true
+    working_directory: ~/kloudformation-runner
+    steps:
+    - checkout
+
+    - run:
+        name: Transpile Stack
+        command: ./kloudformation.sh
