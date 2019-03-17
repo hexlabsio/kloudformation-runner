@@ -7,18 +7,21 @@ import io.kloudformation.model.Output
 import io.kloudformation.model.iam.Resource
 import io.kloudformation.model.iam.action
 import io.kloudformation.model.iam.policyDocument
-import io.kloudformation.property.certificatemanager.certificate.DomainValidationOption
-import io.kloudformation.property.cloudfront.distribution.*
-import io.kloudformation.property.route53.recordset.AliasTarget
-import io.kloudformation.resource.certificatemanager.Certificate
-import io.kloudformation.resource.certificatemanager.certificate
-import io.kloudformation.resource.cloudfront.Distribution
-import io.kloudformation.resource.cloudfront.distribution
-import io.kloudformation.resource.route53.recordSet
-import io.kloudformation.resource.s3.Bucket
-import io.kloudformation.resource.s3.BucketPolicy
-import io.kloudformation.resource.s3.bucket
-import io.kloudformation.resource.s3.bucketPolicy
+import io.kloudformation.property.aws.certificatemanager.certificate.DomainValidationOption
+import io.kloudformation.property.aws.cloudfront.distribution.CustomOriginConfig
+import io.kloudformation.property.aws.cloudfront.distribution.DefaultCacheBehavior
+import io.kloudformation.property.aws.cloudfront.distribution.DistributionConfig
+import io.kloudformation.property.aws.cloudfront.distribution.ForwardedValues
+import io.kloudformation.property.aws.cloudfront.distribution.Origin
+import io.kloudformation.property.aws.cloudfront.distribution.ViewerCertificate
+import io.kloudformation.resource.aws.certificatemanager.Certificate
+import io.kloudformation.resource.aws.certificatemanager.certificate
+import io.kloudformation.resource.aws.cloudfront.Distribution
+import io.kloudformation.resource.aws.cloudfront.distribution
+import io.kloudformation.resource.aws.s3.Bucket
+import io.kloudformation.resource.aws.s3.BucketPolicy
+import io.kloudformation.resource.aws.s3.bucketPolicy
+import io.kloudformation.resource.aws.s3.bucket
 
 enum class CertificationValidationMethod{ EMAIL, DNS }
 enum class SslSupportMethod(val value: String){ SNI("sni-only"), VIP("vip") }
@@ -65,7 +68,7 @@ fun KloudFormation.s3Website(
                     ) { allPrincipals() }
                 }
         ),
-        origin: VMOption.Origin = Origin(
+        origin: Origin = Origin(
                 id = +"s3Origin",
                 domainName = bucket.ref() + +".s3-website-" + awsRegion + +".amazonaws.com",
                 customOriginConfig = CustomOriginConfig(
@@ -98,23 +101,26 @@ fun KloudFormation.s3Website(
 ) {
 }
 
-val certificateVariable = "KloudsCertificate"
+val certificateVariable = "InstallKloudFormationCertificate"
 
 class CertInUsEast1: StackBuilder{
     override fun KloudFormation.create() {
-
-        val certificate = certificate("kloudformation.hexlabs.io")
+        val certificate = certificate("install.kloudformation.hexlabs.io")
         outputs(
                 certificateVariable to Output(certificate.ref(), export = Output.Export(+certificateVariable))
         )
     }
 }
-class Stack: StackBuilder {
+
+class Kloudformation: StackBuilder{
     override fun KloudFormation.create() {
         s3Website(
-                domainName = "kloudformation.hexlabs.io",
-                bucketName = "kloudformation-website",
-                certificateReference = +"arn:aws:acm:us-east-1:662158168835:certificate/2bf1f473-cdf7-453e-b479-6297b6580a5d"
+                domainName = "install.kloudformation.hexlabs.io",
+                bucketName = "install-kloudformation",
+                indexDocument = "install-kloudformation.sh",
+                errorDocument = "install-kloudformation.sh",
+                certificateReference = +"unknown"
         )
+
     }
 }

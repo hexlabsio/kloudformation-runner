@@ -9,7 +9,7 @@ jobs:
 
     - run:
         name: Transpile Stack
-        command: ./kloudformation.sh -q -stack-file stack/Stack.kt -stack-class CertInUsEast1
+        command: ./kloudformation.sh -q -stack-file stack/Stack.kt -stack-class CertInUsEast1 -template cert-stack.yml
 
     - store_artifacts:
-        path: template.yml
+        path: cert-stack.yml
