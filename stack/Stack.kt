@@ -112,14 +112,14 @@ class CertInUsEast1: StackBuilder{
     }
 }
 
-class Kloudformation: StackBuilder{
+class Site: StackBuilder{
     override fun KloudFormation.create() {
         s3Website(
                 domainName = "install.kloudformation.hexlabs.io",
                 bucketName = "install-kloudformation",
                 indexDocument = "install-kloudformation.sh",
                 errorDocument = "install-kloudformation.sh",
-                certificateReference = +"unknown"
+                certificateReference = +"arn:aws:acm:us-east-1:662158168835:certificate/bbb425c8-c79b-40bb-80a1-02d00f764dba"
         )
 
     }
