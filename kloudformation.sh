@@ -10,6 +10,15 @@ cd kloudformation
 
 QUITE=false
 
+unameOut="$(uname -s)"
+case "${unameOut}" in
+    Linux*)     machine=Linux;;
+    Darwin*)    machine=Mac;;
+    CYGWIN*)    machine=Cygwin;;
+    MINGW*)     machine=MinGw;;
+    *)          machine="UNKNOWN:${unameOut}"
+esac
+
 for arg in "$@"
 do
     if [[ ${arg} =~ ^-.* ]]; then
@@ -65,6 +74,9 @@ DOWNLOAD_JAVA=false
 if [[ -z "$JAVA_HOME" ]]; then
     if [[ `which java` ]]; then
         JAVA=java
+    elif [[ ${machine} == "Mac" ]]; then
+        echo When running on mac you must set JAVA_HOME or have the java command available pointing at version 1.8
+        exit 1
     elif [[ -d "./java/jdk-8u202-ojdkbuild-linux-x64" ]]; then
         JAVA=./kloudformation/java/jdk-8u202-ojdkbuild-linux-x64/bin/java
     else
@@ -77,7 +89,10 @@ fi
 if [[ ! -z "$JAVA" ]]; then
     JAVA_VERSION=`"$JAVA" -version 2>&1 | awk -F '"' '/version/ {print $2}'`
     if [[ "${JAVA_VERSION:0:3}" != "1.8" ]]; then
-        if [[ -d "./java/jdk-8u202-ojdkbuild-linux-x64" ]]; then
+        if [[ ${machine} == "Mac" ]]; then
+            echo When running on mac you must set JAVA_HOME or have the java command available pointing at version 1.8
+            exit 1
+        elif [[ -d "./java/jdk-8u202-ojdkbuild-linux-x64" ]]; then
             JAVA=./kloudformation/java/jdk-8u202-ojdkbuild-linux-x64/bin/java
         else
             DOWNLOAD_JAVA=true
