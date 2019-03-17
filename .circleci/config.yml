@@ -15,6 +15,6 @@ jobs:
         path: cert-stack.yml
 
     - run: npm install -g cfn-create-or-update
-    - run: node ./node_modules/cfn-create-or-update/cli.js --stack-name kloudformation-runner-cert --template-body file://cert-stack.yml --timeout-in-minutes 120 --region us-east-1 --wait
+    - run: cfn-create-or-update --stack-name kloudformation-runner-cert --template-body file://cert-stack.yml --timeout-in-minutes 120 --region us-east-1 --wait
 #    - run: node ./node_modules/cfn-create-or-update/cli.js --stack-name kloudformation-web --template-body file://template.yml --timeout-in-minutes 120 --region eu-west-1 --wait
 #    - run: aws s3 sync ./build s3://kloudformation-website/
