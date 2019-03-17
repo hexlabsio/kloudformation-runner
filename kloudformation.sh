@@ -101,8 +101,8 @@ else
 fi
 
 if [[ ! -f kloudformation.jar ]]; then
-    if [[ ${QUITE} == "false" ]]; then echo Downloading KloudFormation 0.1.35; fi
-    curl https://bintray.com/hexlabsio/kloudformation/download_file?file_path=io%2Fkloudformation%2Fkloudformation%2F0.1.35%2Fkloudformation-0.1.35-uber.jar -silent -L -o kloudformation.jar
+    if [[ ${QUITE} == "false" ]]; then echo Downloading KloudFormation 0.1.109; fi
+    curl https://bintray.com/hexlabsio/kloudformation/download_file?file_path=io%2Fkloudformation%2Fkloudformation%2F0.1.109%2Fkloudformation-0.1.109-uber.jar -silent -L -o kloudformation.jar
 fi
 
 DOWNLOAD_JAVA=false
