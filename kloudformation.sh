@@ -5,9 +5,6 @@ STACK_CLASS="Stack"
 TEMPLATE_NAME="template.yml"
 LAST_ARG=""
 
-mkdir -p kloudformation
-cd kloudformation
-
 QUITE=false
 
 unameOut="$(uname -s)"
@@ -18,6 +15,28 @@ case "${unameOut}" in
     MINGW*)     machine=MinGw;;
     *)          machine="UNKNOWN:${unameOut}"
 esac
+if [[ $1 == help ]]; then
+   echo "
+OPTIONS (Replace names in angle braces << Name >>)
+   -q                           Makes logging less verbose (Default off)
+   -stack-file <<File Name>>    Name of Kotlin file containing your stack code (Default = Stack.kt)
+   -stack-class <<Class Name>>  Name of the class inside -stack-file implementing io.kloudformation.StackBuilder (Default = Stack)
+   -template <<Template Name>>  Name of the output template file (Default = template.yml)
+   init                         Initialise a Stack with class name matching -stack-class and filename matching -stack-file
+   help                         Prints this
+
+EXAMPLE Stack.kt
+
+import io.kloudformation.KloudFormation
+import io.kloudformation.StackBuilder
+
+class Stack: StackBuilder {
+    override fun KloudFormation.create() {
+    }
+}
+   "
+    exit 0
+fi
 
 for arg in "$@"
 do
@@ -38,7 +57,7 @@ do
             echo invalid argument ${arg}
             exit 1
         fi
-    else
+    elif [[ ${arg} != "init" ]]; then
        echo invalid argument ${arg}
        exit 1
     fi
@@ -46,10 +65,26 @@ done
 if [[ ${QUITE} == "false" ]]; then
     echo STACK_FILE=${STACK_FILE}
     echo STACK_CLASS=${STACK_CLASS}
+fi
+
+if  [[ $1 == init ]]; then
+    if [[ ${QUITE} == "false" ]]; then echo "Initialising ${STACK_FILE}"; fi
+    echo "import io.kloudformation.KloudFormation
+import io.kloudformation.StackBuilder
+
+class ${STACK_CLASS}: StackBuilder {
+    override fun KloudFormation.create() {
+    }
+}" > "${STACK_FILE}"
+    exit 0
+fi
+
+if [[ ${QUITE} == "false" ]]; then
     echo TEMPLATE_NAME=${TEMPLATE_NAME}
 fi
 
-
+mkdir -p kloudformation
+cd kloudformation
 if [[ `which kotlinc` ]]; then
     KOTLIN=`which kotlinc`
 else
