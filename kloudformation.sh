@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash +e
 
 STACK_FILE="Stack.kt"
 STACK_CLASS="Stack"
@@ -40,9 +40,11 @@ else
     if [[ ! -d kotlinc ]]; then
         echo Downloading Kotlin Compiler 1.3.10
         mkdir -p kotlin
-        curl https://github.com/JetBrains/kotlin/releases/download/v1.3.10/kotlin-compiler-1.3.10.zip -silent -L -o kotlin/kotlin.zip
+        cd kotlin
+        curl https://github.com/JetBrains/kotlin/releases/download/v1.3.10/kotlin-compiler-1.3.10.zip -silent -L -o kotlin.zip
         unzip -qq kotlin.zip
         rm -f kotlin.zip
+        cd ..
     fi
     KOTLIN=kloudformation/kotlin/kotlinc/bin/kotlinc
 fi
