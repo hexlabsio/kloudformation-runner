@@ -56,7 +56,7 @@ fi
 
 DOWNLOAD_JAVA=false
 if [[ -z "$JAVA_HOME" ]]; then
-    if [[ `which java` ]]; then
+    if [[ `which javak` ]]; then
         JAVA=java
     elif [[ -d "./java/jdk-8u202-ojdkbuild-linux-x64" ]]; then
         JAVA=./kloudformation/java/jdk-8u202-ojdkbuild-linux-x64/bin/java
