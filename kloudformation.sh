@@ -37,7 +37,7 @@ echo TEMPLATE_NAME=${TEMPLATE_NAME}
 if [[ `which kotlinc` ]]; then
     KOTLIN=`which kotlinc`
 else
-    if [[ ! -d kotlinc ]]; then
+    if [[ ! -d kotlin/kotlinc ]]; then
         echo Downloading Kotlin Compiler 1.3.10
         mkdir -p kotlin
         cd kotlin
@@ -46,10 +46,8 @@ else
         rm -f kotlin.zip
         cd ..
     fi
-    KOTLIN=kloudformation/kotlin/kotlinc/bin/kotlinc
+    KOTLIN=./kloudformation/kotlin/kotlinc/bin/kotlinc
 fi
-
-"$KOTLIN" -version
 
 if [[ ! -f kloudformation.jar ]]; then
     echo Downloading KloudFormation 0.1.35
@@ -91,5 +89,7 @@ if [[ "$DOWNLOAD_JAVA" == "true" ]]; then
     cd ..
 fi
 cd ..
+
+"$KOTLIN" -version
 "$KOTLIN" -classpath kloudformation/kloudformation.jar "$STACK_FILE" -include-runtime -d kloudformation/stack.jar
 "$JAVA" -classpath kloudformation/stack.jar:kloudformation/kloudformation.jar io.kloudformation.StackBuilderKt "$STACK_CLASS" "$TEMPLATE_NAME"
