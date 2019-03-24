@@ -2,7 +2,15 @@ import io.kloudformation.KloudFormation
 import io.kloudformation.StackBuilder
 import io.kloudformation.Value
 import io.kloudformation.function.plus
+import io.kloudformation.model.KloudFormationTemplate
+import io.kloudformation.model.KloudFormationTemplate.Builder.Companion.awsAccountId
+import io.kloudformation.model.KloudFormationTemplate.Builder.Companion.awsNoValue
+import io.kloudformation.model.KloudFormationTemplate.Builder.Companion.awsNotificationArns
+import io.kloudformation.model.KloudFormationTemplate.Builder.Companion.awsPartition
 import io.kloudformation.model.KloudFormationTemplate.Builder.Companion.awsRegion
+import io.kloudformation.model.KloudFormationTemplate.Builder.Companion.awsStackId
+import io.kloudformation.model.KloudFormationTemplate.Builder.Companion.awsStackName
+import io.kloudformation.model.KloudFormationTemplate.Builder.Companion.awsUrlSuffix
 import io.kloudformation.model.Output
 import io.kloudformation.model.iam.Resource
 import io.kloudformation.model.iam.action
@@ -22,6 +30,7 @@ import io.kloudformation.resource.aws.s3.Bucket
 import io.kloudformation.resource.aws.s3.BucketPolicy
 import io.kloudformation.resource.aws.s3.bucketPolicy
 import io.kloudformation.resource.aws.s3.bucket
+import io.kloudformation.toYaml
 
 enum class CertificationValidationMethod{ EMAIL, DNS }
 enum class SslSupportMethod(val value: String){ SNI("sni-only"), VIP("vip") }
@@ -112,7 +121,7 @@ class CertInUsEast1: StackBuilder{
     }
 }
 
-class Site: StackBuilder{
+class Site: StackBuilder {
     override fun KloudFormation.create() {
         s3Website(
                 domainName = "install.kloudformation.hexlabs.io",
