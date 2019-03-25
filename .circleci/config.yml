@@ -6,23 +6,26 @@ jobs:
     working_directory: ~/kloudformation-runner
     steps:
     - checkout
-#
-#    - run:
-#        name: Transpile Stacks
-#        command: |
-#          ./kloudformation.sh -q -stack-file stack/Stack.kt -stack-class CertInUsEast1 -template cert-stack.yml
-#          ./kloudformation.sh -q -stack-file stack/Stack.kt -stack-class Site -template site-stack.yml
-#
-#    - run:
-#        name: Move Files
-#        command: |
-#          mkdir build
-#          mv install-kloudformation.sh build
-#          mv kloudformation.sh build
-#
-#    - store_artifacts:
-#        path: cert-stack.yml
-#
+
+    - run:
+        name: Transpile Stacks
+        command: |
+          ./kloudformation.sh -q -stack-file stack/Stack.kt -stack-class CertInUsEast1 -template cert-stack.yml
+          ./kloudformation.sh -q -stack-file stack/Stack.kt -stack-class Site -template site-stack.yml
+
+    - store_artifacts:
+        path: cert-stack.yml
+
+    - store_artifacts:
+        path: site-stack.yml
+
+    - run:
+        name: Move Files
+        command: |
+          mkdir build
+          mv install-kloudformation.sh build
+          mv kloudformation.sh build
+
 #    - run: npm install -g cfn-create-or-update
 #    - run: cfn-create-or-update --stack-name kloudformation-runner-cert --template-body file://cert-stack.yml --timeout-in-minutes 120 --region us-east-1 --wait
 #    - run: cfn-create-or-update --stack-name kloudformation-runner-site --template-body file://site-stack.yml --timeout-in-minutes 120 --region eu-west-1 --wait

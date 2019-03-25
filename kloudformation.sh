@@ -1,18 +1,25 @@
 #!/bin/bash +e
 
-VERSION="0.1.113"
+DEFAULT_VERSION="0.1.113"
+VERSION=${DEFAULT_VERSION}
 
 STACK_FILE="Stack.kt"
 STACK_CLASS="Stack"
 TEMPLATE_NAME="template.yml"
 QUITE=
+MODULES=()
 
+VERSION_ARG=("-version" "arg" "VERSION")
+V_ARG=("-v" "arg" "VERSION")
 STACK_FILE_ARG=("-stack-file" "arg" "STACK_FILE")
 STACK_CLASS_ARG=("-stack-class" "arg" "STACK_CLASS")
-TEMPLATE_NAME_ARG=("-template-name" "arg" "TEMPLATE_NAME")
-QUITE_ARG=("-q" "toggle" "QUITE")
+TEMPLATE_NAME_ARG=("-template" "arg" "TEMPLATE_NAME")
+MODULE_ARG=("-module" "array" "MODULES")
+M_ARG=("-m" "array" "MODULES")
+QUITE_ARG=("-quite" "toggle" "QUITE")
+Q_ARG=("-q" "toggle" "QUITE")
 
-ARGUMENTS=("STACK_FILE_ARG" "STACK_CLASS_ARG" "QUITE_ARG")
+ARGUMENTS=("STACK_FILE_ARG" "STACK_CLASS_ARG" "TEMPLATE_NAME_ARG" "QUITE_ARG" "Q_ARG" "MODULE_ARG" "M_ARG" "VERSION_ARG" "V_ARG")
 COMMANDS=("help" "transpile" "init" "version")
 
 SELECTED_COMMAND="transpile"
@@ -23,10 +30,15 @@ log () {
 }
 
 LAST_ARG=""
+LAST_ARG_ARRAY=false
 for arg in "$@"; do
     if [[ "${LAST_ARG}" != "" ]]; then
         if [[ "${LAST_ARG}" != "UNKNOWN" ]]; then
-            eval "${LAST_ARG}=\"${arg}\""
+            if [[ "${LAST_ARG_ARRAY}" == "true" ]]; then
+                eval ${LAST_ARG}\+=\( \"${arg}\" \)
+            else
+                eval "${LAST_ARG}=\"${arg}\""
+            fi
         fi
          LAST_ARG=""
     else
@@ -43,8 +55,12 @@ for arg in "$@"; do
                 eval "ARG_NAME=\${${a}[0]}"
                 eval "ARG_TYPE=\${${a}[1]}"
                 if [[ "${ARG_NAME}" == ${arg} ]]; then
+                    LAST_ARG_ARRAY=false
                     if [[ "${ARG_TYPE}" == "arg" ]]; then
                          eval "LAST_ARG=\${${a}[2]}"
+                     elif [[ "${ARG_TYPE}" == "array" ]]; then
+                         eval "LAST_ARG=\${${a}[2]}"
+                         LAST_ARG_ARRAY=true
                      else
                         eval "TOGGLE_ARG=\${${a}[2]}"
                         eval "${TOGGLE_ARG}=true"
@@ -76,19 +92,30 @@ machine () {
 help () {
     echo "
 OPTIONS (Replace names in angle braces << Name >>)
-   -q                           Makes logging less verbose (Default off)
-   -stack-file <<File Name>>    Name of Kotlin file containing your stack code (Default = Stack.kt)
-   -stack-class <<Class Name>>  Name of the class inside -stack-file implementing io.kloudformation.StackBuilder (Default = Stack)
-   -template <<Template Name>>  Name of the output template file (Default = template.yml)
-   init                         Initialise a Stack with class name matching -stack-class and filename matching -stack-file
-   help                         Prints this
+   -q, -quite                         Makes logging less verbose (Default off)
+   -stack-file <<File Name>>          Name of Kotlin file containing your stack code (Default = Stack.kt)
+   -stack-class <<Class Name>>        Name of the class inside -stack-file implementing io.kloudformation.StackBuilder (Default = Stack)
+   -template <<Template Name>>        Name of the output template file (Default = template.yml)
+   -module, -m <<Module>>@<<Version>> Includes a KloudFormation Module Named kloudformation-<<Module>>-module
+   -version, -v <<Version>>          Sets KloudFormation Version (Default = ${DEFAULT_VERSION})
+   init                               Initialise a Stack with class name matching -stack-class and filename matching -stack-file
+   version                            Prints the Version of KloudFormation
+   help                               Prints this
 "
     exit 0
 }
 
 list_arguments() {
     log Machine: $( machine )
-    log Arguments: \[ -stack-file: ${STACK_FILE}, -stack-class: ${STACK_CLASS}, -template-name: ${TEMPLATE_NAME} ]
+    local MODULE_LIST=""
+    for module in ${MODULES[@]}; do
+        MODULE_VERSION=( ${module/@/ } )
+        MODULE_LIST="${MODULE_LIST} kloudformation-${MODULE_VERSION[0]}-module-${MODULE_VERSION[1]}"
+    done
+    if [[ "${MODULE_LIST}" != "" ]]; then
+        log Modules: ${MODULE_LIST}
+    fi
+    log Arguments: \[ -stack-file: ${STACK_FILE}, -stack-class: ${STACK_CLASS}, -template: ${TEMPLATE_NAME} ]
 }
 
 init() {
@@ -160,6 +187,23 @@ kotlinCommand() {
     fi
 }
 
+moduleDownload() {
+    local NAME=kloudformation-${1}-module
+    local VERSION=${2}
+    local FILE_NAME=${NAME}-${VERSION}.jar
+    local URL=https://bintray.com/hexlabsio/kloudformation/download_file?file_path=io%2Fhexlabs%2F${NAME}%2F${VERSION}%2F${FILE_NAME}
+    if [[ ! -f "${FILE_NAME}" ]]; then
+        log Downloading ${NAME} ${VERSION} from ${URL}
+        if [[ `curl -sSL -D - ${URL} -o /dev/null | grep 200` ]]; then
+            curl -sSL ${URL} -o ${FILE_NAME}
+            MODULES+=( "${FILE_NAME}" )
+        else
+           echo ERROR: Could not download ${NAME} from ${URL}
+           exit 1
+        fi
+    fi
+}
+
 kloudformationJar() {
     if [[ ! -f kloudformation-${1}.jar ]]; then
         log Downloading KloudFormation ${1}
@@ -178,14 +222,20 @@ transpile() {
     javaCommand
     kotlinCommand
     kloudformationJar ${VERSION}
+    CLASSPATH="kloudformation/kloudformation-${VERSION}.jar"
+    for module in ${MODULES[@]}; do
+        MODULE_VERSION=( ${module/@/ } )
+        moduleDownload ${MODULE_VERSION[@]}
+        CLASSPATH=${CLASSPATH}:kloudformation/kloudformation-${MODULE_VERSION[0]}-module-${MODULE_VERSION[1]}.jar
+    done
     cd ..
-    "$KOTLIN" -classpath kloudformation/kloudformation-${VERSION}.jar "$STACK_FILE" -include-runtime -d kloudformation/stack.jar
-    "$JAVA" -classpath kloudformation/stack.jar:kloudformation/kloudformation-${VERSION}.jar io.kloudformation.StackBuilderKt "$STACK_CLASS" "$TEMPLATE_NAME"
+    "$KOTLIN" -classpath ${CLASSPATH} "$STACK_FILE" -include-runtime -d kloudformation/stack.jar
+    "$JAVA" -classpath kloudformation/stack.jar:${CLASSPATH} io.kloudformation.StackBuilderKt "$STACK_CLASS" "$TEMPLATE_NAME"
     log Template generated to ${TEMPLATE_NAME}
 }
 
 version() {
-    echo ${VERSION}
+    echo ${DEFAULT_VERSION}
 }
 
 ${SELECTED_COMMAND}
