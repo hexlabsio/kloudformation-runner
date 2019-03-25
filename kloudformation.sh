@@ -1,4 +1,4 @@
-#!/bin/bash +e
+#!/usr/bin/env bash -e
 
 DEFAULT_VERSION="0.1.113"
 VERSION=${DEFAULT_VERSION}
