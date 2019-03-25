@@ -157,16 +157,24 @@ javaCommand() {
        fi
     fi
     if [[ -z ${JAVA} ]]; then
-        echo ERROR: Could not find Java 1.8, Install Java or set JAVA_HOME
-    elif [[ $( machine ) == Linux ]]; then
-        log Downloading Java 1.8;
-        mkdir -p java
-        cd java
-        curl https://github.com/ojdkbuild/contrib_jdk8u-ci/releases/download/jdk8u202-b08/jdk-8u202-ojdkbuild-linux-x64.zip -silent -L -o openjdk.zip
-        unzip -o -qq openjdk.zip 2>/dev/null 1>/dev/null
-        rm -rf openjdk.zip
-        JAVA=./kloudformation/java/jdk-8u202-ojdkbuild-linux-x64/bin/java
-        cd ..
+        if [[ $( machine ) == Linux ]]; then
+            if [[ ! -f java/jdk-8u202-ojdkbuild-linux-x64/bin/java ]]; then
+                log Downloading Java 1.8;
+                mkdir -p java
+                cd java
+                curl https://github.com/ojdkbuild/contrib_jdk8u-ci/releases/download/jdk8u202-b08/jdk-8u202-ojdkbuild-linux-x64.zip -silent -L -o openjdk.zip
+                set +e
+                unzip -o -qq openjdk.zip 2>/dev/null 1>/dev/null
+                set -e
+                rm -rf openjdk.zip
+                export JAVA_HOME=./kloudformation/java/jdk-8u202-ojdkbuild-linux-x64
+                JAVA=./kloudformation/java/jdk-8u202-ojdkbuild-linux-x64/bin/java
+                cd ..
+            fi
+        else
+            echo ERROR: Could not find Java 1.8, Install Java or set JAVA_HOME
+            exit 1
+        fi
     fi
 }
 
@@ -179,7 +187,9 @@ kotlinCommand() {
             mkdir -p kotlin
             cd kotlin
             curl https://github.com/JetBrains/kotlin/releases/download/v1.3.10/kotlin-compiler-1.3.10.zip -silent -L -o kotlin.zip
+            set +e
             unzip -o -qq kotlin.zip 2>/dev/null 1>/dev/null
+            set -e
             rm -f kotlin.zip
             cd ..
         fi
