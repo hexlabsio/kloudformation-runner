@@ -1,4 +1,4 @@
-#!/usr/bin/env bash -e
+#!/bin/bash -e
 
 if [[ "$1" == "-local" ]]; then
     curl -s https://install.kloudformation.hexlabs.io/kloudformation.sh -o kloudformation.sh
