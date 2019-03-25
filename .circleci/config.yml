@@ -10,8 +10,14 @@ jobs:
     - run:
         name: Transpile Stacks
         command: |
-          ./kloudformation.sh -q -stack-file stack/Stack.kt -stack-class CertInUsEast1 -template cert-stack.yml
-          ./kloudformation.sh -q -stack-file stack/Stack.kt -stack-class Site -template site-stack.yml
+          ./kloudformation.sh -stack-file stack/Stack.kt -stack-class CertInUsEast1 -template cert-stack.yml -m s3@0.1.8
+          ./kloudformation.sh -stack-file stack/Stack.kt -stack-class Site -template site-stack.yml -m s3@0.1.8
+
+    - store_artifacts:
+        path: cert-stack.yml
+
+    - store_artifacts:
+        path: site-stack.yml
 
     - run:
         name: Move Files
@@ -20,10 +26,15 @@ jobs:
           mv install-kloudformation.sh build
           mv kloudformation.sh build
 
-    - store_artifacts:
-        path: cert-stack.yml
-
-    - run: npm install -g cfn-create-or-update
-    - run: cfn-create-or-update --stack-name kloudformation-runner-cert --template-body file://cert-stack.yml --timeout-in-minutes 120 --region us-east-1 --wait
-    - run: cfn-create-or-update --stack-name kloudformation-runner-site --template-body file://site-stack.yml --timeout-in-minutes 120 --region eu-west-1 --wait
-    - run: aws s3 sync ./build s3://install-kloudformation/
+    - run:
+        name: Install CloudFormation Scripts
+        command: npm install -g cfn-create-or-update
+    - run:
+        name: Deploy Certificate Stack
+        command: cfn-create-or-update --stack-name kloudformation-runner-cert --template-body file://cert-stack.yml --timeout-in-minutes 120 --region us-east-1 --wait
+    - run:
+        name: Deploy Site Stack
+        command: cfn-create-or-update --stack-name kloudformation-runner-site --template-body file://site-stack.yml --timeout-in-minutes 120 --region eu-west-1 --wait
+    - run:
+        name: Sync Files with S3
+        command: aws s3 sync ./build s3://install-kloudformation/
