@@ -4,7 +4,7 @@ if [[ "$1" == "-local" ]]; then
     curl -s https://install.kloudformation.hexlabs.io/kloudformation.sh -o kloudformation.sh
     chmod +x kloudformation.sh
     echo "KloudFormation installed to ${pwd}/kloudformation.sh"
-    ./kloudforamtion.sh version
+    ./kloudformation.sh version
     ./kloudformation.sh help
 else
     mkdir -p /usr/local/bin/kloudformation-install
@@ -14,7 +14,7 @@ else
 
     echo "KloudFormation installed to /usr/local/bin/kloudformation"
 
-    kloudforamtion version
+    kloudformation version
     kloudformation help
 fi
 
