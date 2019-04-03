@@ -14,7 +14,7 @@ else
 
     echo "KloudFormation installed to /usr/local/bin/kloudformation"
 
-    kloudforamtion version
+    echo Installed Version now at `kloudforamtion version`
     kloudformation help
 fi
 

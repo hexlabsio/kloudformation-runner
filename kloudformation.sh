@@ -20,7 +20,7 @@ QUITE_ARG=("-quite" "toggle" "QUITE")
 Q_ARG=("-q" "toggle" "QUITE")
 
 ARGUMENTS=("STACK_FILE_ARG" "STACK_CLASS_ARG" "TEMPLATE_NAME_ARG" "QUITE_ARG" "Q_ARG" "MODULE_ARG" "M_ARG" "VERSION_ARG" "V_ARG")
-COMMANDS=("help" "transpile" "init" "version")
+COMMANDS=("help" "transpile" "init" "version" "update")
 
 SELECTED_COMMAND="transpile"
 
@@ -97,9 +97,10 @@ OPTIONS (Replace names in angle braces << Name >>)
    -stack-class <<Class Name>>        Name of the class inside -stack-file implementing io.kloudformation.StackBuilder (Default = Stack)
    -template <<Template Name>>        Name of the output template file (Default = template.yml)
    -module, -m <<Module>>@<<Version>> Includes a KloudFormation Module Named kloudformation-<<Module>>-module
-   -version, -v <<Version>>          Sets KloudFormation Version (Default = ${DEFAULT_VERSION})
+   -version, -v <<Version>>           Sets KloudFormation Version (Default = ${DEFAULT_VERSION})
    init                               Initialise a Stack with class name matching -stack-class and filename matching -stack-file
    version                            Prints the Version of KloudFormation
+   update                             Downloads the latest version of this script and installs it
    help                               Prints this
 "
     exit 0
@@ -246,6 +247,11 @@ transpile() {
 
 version() {
     echo ${DEFAULT_VERSION}
+}
+
+update() {
+    curl -sSL install.kloudformation.hexlabs.io | sh
+    echo Updated to version `kloudformation version`
 }
 
 ${SELECTED_COMMAND}
