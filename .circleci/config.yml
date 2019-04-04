@@ -22,9 +22,25 @@ jobs:
     - run:
         name: Move Files
         command: |
-          mkdir build
-          mv install-kloudformation.sh build
-          mv kloudformation.sh build
+          mkdir s3
+          mv install-kloudformation.sh s3
+          mv kloudformation.sh s3
+    - restore_cache:
+        keys:
+        - gradle-{{ checksum "build.gradle.kts" }}
+
+    - run:
+        name: Gradle Clean
+        command: ./gradlew clean build -DBUILD_NUM=$CIRCLE_BUILD_NUM
+
+    - run:
+        name: Gradle Build and Upload
+        command: ./gradlew bintrayUpload -DBUILD_NUM=$CIRCLE_BUILD_NUM -DBINTRAY_KEY=$BINTRAY_KEY
+
+    - save_cache:
+        paths:
+        - ~/.gradle
+        key: gradle-{{ checksum "build.gradle.kts" }}
 
     - run:
         name: Install CloudFormation Scripts
@@ -37,4 +53,4 @@ jobs:
         command: cfn-create-or-update --stack-name kloudformation-runner-site --template-body file://site-stack.yml --timeout-in-minutes 120 --region eu-west-1 --wait
     - run:
         name: Sync Files with S3
-        command: aws s3 sync ./build s3://install-kloudformation/
+        command: aws s3 sync ./s3 s3://install-kloudformation/
