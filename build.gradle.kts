@@ -60,7 +60,7 @@ configure<KtlintExtension> {
 configure<GithookExtension> {
     githook {
         hooks {
-            create("pre-push") {
+            create("pre-commit") {
                 task = "build"
             }
         }
@@ -83,6 +83,7 @@ val shadowJar by tasks.getting(ShadowJar::class) {
 
 artifacts {
     add("archives", shadowJar)
+    add("archives", sourcesJar)
 }
 
 bintray {
@@ -110,6 +111,7 @@ publishing {
             from(components["java"])
             artifactId = artifactId
             artifact(sourcesJar)
+            artifact(shadowJar)
             pom.withXml {
                 val dependencies = (asNode()["dependencies"] as NodeList)
                 configurations.compile.allDependencies.forEach {
