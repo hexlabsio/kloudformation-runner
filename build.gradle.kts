@@ -43,16 +43,16 @@ dependencies {
     testRuntime(group = "org.junit.jupiter", name = "junit-jupiter-engine", version = "5.0.0")
 }
 
-sourceSets {
-    main {
-        java {
-            srcDirs("src/main/kotlin")
-        }
+val shadowJar by tasks.getting(ShadowJar::class) {
+    classifier = "uber"
+    manifest {
+        attributes(mapOf("Main-Class" to "io.hexlabs.kloudformation.runner.DeployKt"))
     }
 }
 
-tasks.withType<KotlinCompile> {
+val compile = tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "1.8"
+    finalizedBy(shadowJar)
 }
 tasks.withType<Test> {
     useJUnitPlatform()
@@ -79,14 +79,6 @@ val sourcesJar by tasks.creating(Jar::class) {
     classifier = "sources"
     from(sourceSets["main"].allSource)
 }
-
-val shadowJar by tasks.getting(ShadowJar::class) {
-    classifier = "uber"
-    manifest {
-        attributes(mapOf("Main-Class" to "io.hexlabs.kloudformation.runner.DeployKt"))
-    }
-}
-
 
 artifacts {
     add("archives", shadowJar)
