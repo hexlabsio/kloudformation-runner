@@ -44,10 +44,16 @@ dependencies {
 }
 
 val shadowJar by tasks.getting(ShadowJar::class) {
-    classifier = "uber"
+    archiveClassifier.set("uber")
+    from(sourceSets["main"].allSource)
     manifest {
         attributes(mapOf("Main-Class" to "io.hexlabs.kloudformation.runner.DeployKt"))
     }
+}
+
+val sourcesJar by tasks.creating(Jar::class) {
+    archiveClassifier.set("sources")
+    from(sourceSets["main"].allSource)
 }
 
 val compile = tasks.withType<KotlinCompile> {
@@ -73,11 +79,6 @@ configure<GithookExtension> {
             }
         }
     }
-}
-
-val sourcesJar by tasks.creating(Jar::class) {
-    classifier = "sources"
-    from(sourceSets["main"].allSource)
 }
 
 artifacts {
@@ -113,7 +114,7 @@ publishing {
             artifact(shadowJar)
             pom.withXml {
                 val dependencies = (asNode()["dependencies"] as NodeList)
-                configurations.compile.allDependencies.forEach {
+                configurations.compile.get().allDependencies.forEach {
                     dependencies.add(Node(null, "dependency").apply {
                         appendNode("groupId", it.group)
                         appendNode("artifactId", it.name)
