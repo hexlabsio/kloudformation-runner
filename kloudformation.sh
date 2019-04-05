@@ -2,7 +2,7 @@
 
 KOTLIN_VERSION="1.3.21"
 KOTLIN_LIBRARIES=("stdlib" "stdlib-common" "stdlib-jdk8" "reflect")
-RUNNER_VERSION="0.1.37"
+RUNNER_VERSION="0.1.XXXXX"
 DEFAULT_VERSION="0.1.116"
 VERSION=${DEFAULT_VERSION}
 INSTALL_DIRECTORY=~/.kloudformation
@@ -36,8 +36,21 @@ COMMANDS=("help" "transpile" "init" "version" "update"  "deploy" "invert" "idea"
 
 SELECTED_COMMAND="transpile"
 
+REQUIRED_COMMANDS=("curl" "unzip")
+
 log () {
     if [[ -z ${QUITE} ]]; then echo $@; fi
+}
+
+checkRequirements() {
+    local FAILED=
+    for requirement in ${REQUIRED_COMMANDS[@]}; do
+        if [[ ! `which $requirement` ]]; then
+            echo Could not find $requirement command exiting
+            FAILED=true
+        fi
+    done
+    if [[ ! -z ${FAILED} ]]; then exit 1; fi
 }
 
 LAST_ARG=""
@@ -178,19 +191,20 @@ javaCommand() {
     fi
     if [[ -z ${JAVA} ]]; then
         if [[ $( machine ) == Linux ]]; then
-            if [[ ! -f java/jdk-8u202-ojdkbuild-linux-x64/bin/java ]]; then
+            if [[ ! -f ${INSTALL_DIRECTORY}/java/jdk-8u202-ojdkbuild-linux-x64/bin/java ]]; then
                 log Downloading Java 1.8;
-                mkdir -p java
-                cd java
+                mkdir -p ${INSTALL_DIRECTORY}/java
+                local CURRENT_DIR=${PWD}
+                cd ${INSTALL_DIRECTORY}/java
                 curl https://github.com/ojdkbuild/contrib_jdk8u-ci/releases/download/jdk8u202-b08/jdk-8u202-ojdkbuild-linux-x64.zip -silent -L -o openjdk.zip
                 set +e
                 unzip -o -qq openjdk.zip 2>/dev/null 1>/dev/null
                 set -e
                 rm -rf openjdk.zip
-                export JAVA_HOME=${INSTALL_DIRECTORY}/java/jdk-8u202-ojdkbuild-linux-x64
-                JAVA=${INSTALL_DIRECTORY}/java/jdk-8u202-ojdkbuild-linux-x64/bin/java
-                cd ..
+                cd ${CURRENT_DIR}
             fi
+            export JAVA_HOME=${INSTALL_DIRECTORY}/java/jdk-8u202-ojdkbuild-linux-x64
+            JAVA=${INSTALL_DIRECTORY}/java/jdk-8u202-ojdkbuild-linux-x64/bin/java
         else
             echo ERROR: Could not find Java 1.8, Install Java or set JAVA_HOME
             exit 1
@@ -281,6 +295,7 @@ setClasspath() {
 }
 
 downloadClasspath() {
+    checkRequirements
     list_arguments
     mkdir -p ${INSTALL_DIRECTORY}
     local CURRENT_DIR=${PWD}
@@ -332,6 +347,7 @@ deploy() {
 }
 
 idea() {
+
 if [[ ! `ls` ]]; then
 init
 fi
