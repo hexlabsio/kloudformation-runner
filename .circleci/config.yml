@@ -31,8 +31,8 @@ jobs:
     - run:
         name: Transpile Stacks
         command: |
-          ./kloudformation.sh deploy -stack-file stack/Stack.kt -stack-class CertInUsEast1 -template cert-stack.yml -m s3@0.1.8
-          ./kloudformation.sh deploy -stack-file stack/Stack.kt -stack-class Site -template site-stack.yml -m s3@0.1.8
+          ./kloudformation.sh -stack-file stack/Stack.kt -stack-class CertInUsEast1 -template cert-stack.yml -m s3@0.1.8
+          ./kloudformation.sh -stack-file stack/Stack.kt -stack-class Site -template site-stack.yml -m s3@0.1.8
 
     - store_artifacts:
         path: cert-stack.yml
