@@ -1,5 +1,6 @@
 #!/bin/bash -e
 
+RUNNER_VERSION="0.1.XXXXX"
 DEFAULT_VERSION="0.1.113"
 VERSION=${DEFAULT_VERSION}
 
@@ -20,7 +21,7 @@ QUITE_ARG=("-quite" "toggle" "QUITE")
 Q_ARG=("-q" "toggle" "QUITE")
 
 ARGUMENTS=("STACK_FILE_ARG" "STACK_CLASS_ARG" "TEMPLATE_NAME_ARG" "QUITE_ARG" "Q_ARG" "MODULE_ARG" "M_ARG" "VERSION_ARG" "V_ARG")
-COMMANDS=("help" "transpile" "init" "version" "update")
+COMMANDS=("help" "transpile" "init" "version" "update"  "deploy")
 
 SELECTED_COMMAND="transpile"
 
@@ -252,6 +253,11 @@ version() {
 update() {
     curl -sSL install.kloudformation.hexlabs.io | sh
     echo Updated to version `kloudformation version`
+}
+
+deploy() {
+    transpile
+    echo pretending to deploy version ${RUNNER_VERSION}
 }
 
 ${SELECTED_COMMAND}

@@ -43,6 +43,10 @@ jobs:
         key: gradle-{{ checksum "build.gradle.kts" }}
 
     - run:
+        name: Update Version Number in Scripts
+        command: awk -v CIRCLE_BUILD_NUM=${CIRCLE_BUILD_NUM} '{sub(/XXXXX/, CIRCLE_BUILD_NUM)}1' kloudformation.sh > temp.sh && mv temp.sh kloudformation.sh
+
+    - run:
         name: Install CloudFormation Scripts
         command: npm install -g cfn-create-or-update
     - run:
