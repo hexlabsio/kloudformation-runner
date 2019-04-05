@@ -7,24 +7,6 @@ jobs:
     steps:
     - checkout
 
-    - run:
-        name: Transpile Stacks
-        command: |
-          ./kloudformation.sh -stack-file stack/Stack.kt -stack-class CertInUsEast1 -template cert-stack.yml -m s3@0.1.8
-          ./kloudformation.sh -stack-file stack/Stack.kt -stack-class Site -template site-stack.yml -m s3@0.1.8
-
-    - store_artifacts:
-        path: cert-stack.yml
-
-    - store_artifacts:
-        path: site-stack.yml
-
-    - run:
-        name: Move Files
-        command: |
-          mkdir s3
-          mv install-kloudformation.sh s3
-          mv kloudformation.sh s3
     - restore_cache:
         keys:
         - gradle-{{ checksum "build.gradle.kts" }}
@@ -44,7 +26,26 @@ jobs:
 
     - run:
         name: Update Version Number in Scripts
-        command: awk -v CIRCLE_BUILD_NUM=${CIRCLE_BUILD_NUM} '{sub(/XXXXX/, CIRCLE_BUILD_NUM)}1' kloudformation.sh > temp.sh && mv temp.sh kloudformation.sh
+        command: awk -v CIRCLE_BUILD_NUM=${CIRCLE_BUILD_NUM} '{sub(/XXXXX/, CIRCLE_BUILD_NUM)}1' kloudformation.sh > temp.sh && mv temp.sh kloudformation.sh && chmod +x kloudformation.sh
+
+    - run:
+        name: Transpile Stacks
+        command: |
+          ./kloudformation.sh deploy -stack-file stack/Stack.kt -stack-class CertInUsEast1 -template cert-stack.yml -m s3@0.1.8
+          ./kloudformation.sh deploy -stack-file stack/Stack.kt -stack-class Site -template site-stack.yml -m s3@0.1.8
+
+    - store_artifacts:
+        path: cert-stack.yml
+
+    - store_artifacts:
+        path: site-stack.yml
+
+    - run:
+        name: Move Files
+        command: |
+          mkdir s3
+          mv install-kloudformation.sh s3
+          mv kloudformation.sh s3
 
     - run:
         name: Install CloudFormation Scripts
