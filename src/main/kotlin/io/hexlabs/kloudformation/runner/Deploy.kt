@@ -102,8 +102,10 @@ class StackBuilder(val region: Region, val client: CloudFormationClient = CloudF
 
     data class Result(val success: Boolean)
 
+    private fun print(logicalId: String, type: String, status: String, physicalId: String?, reason: String?) = println("$logicalId $type Status became $status" + (reason?.let { " because $it" } ?: "") + (physicalId?.let { " ($it)" } ?: ""))
+
     private fun printResourceUpdates(previousResources: List<StackResource>, currentResources: List<StackResource>) {
-        fun print(resource: StackResource) = println("${resource.logicalResourceId()} ${resource.resourceType() ?: ""} Status became ${resource.resourceStatusAsString()}" + (resource.resourceStatusReason()?.let { " because $it" } ?: "") + (resource.physicalResourceId()?.let { " ($it)" } ?: ""))
+        fun print(resource: StackResource) = print(resource.logicalResourceId(), resource.resourceType() ?: "", resource.resourceStatusAsString(), resource.physicalResourceId(), resource.resourceStatusReason())
         currentResources.forEach { resource ->
             val oldVersion = previousResources.find { it.logicalResourceId() == resource.logicalResourceId() }
             if (oldVersion != null) {
@@ -115,19 +117,21 @@ class StackBuilder(val region: Region, val client: CloudFormationClient = CloudF
             .forEach { println(it.logicalResourceId() + " has been removed") }
     }
 
-    private fun waitFor(stackName: String, previousResources: List<StackResource> = emptyList()): Result {
+    private fun waitFor(stackName: String, previousStackStatus: String? = null, previousStackReason: String? = null, previousResources: List<StackResource> = emptyList()): Result {
         return stackWith(stackName)?.let { stack ->
             val status = stack.stackStatus()
+            val reason = stack.stackStatusReason()
             val resources = client.describeStackResources(DescribeStackResourcesRequest.builder().stackName(stackName).build()).stackResources()
             if (previousResources.isNotEmpty()) {
                 printResourceUpdates(previousResources, resources)
             }
-            println("${stack.stackId()} Status: ${stack.stackStatusAsString()}" + (stack.stackStatusReason()?.let { " $it" } ?: ""))
+            if (status.toString() != previousStackStatus || reason != previousStackReason)
+                print(stack.stackName(), "AWS::CloudFormation::Stack", status.toString(), stack.stackId(), reason)
             if (terminalStatuses.contains(status)) {
                 Result(successStatuses.contains(status))
             } else {
                 Thread.sleep(5000)
-                waitFor(stackName, resources)
+                waitFor(stackName, status.toString(), reason, resources)
             }
         } ?: Result(success = false)
     }
