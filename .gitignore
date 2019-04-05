@@ -1,8 +1,7 @@
 .DS_STORE
 .gradle
 .idea
-kloudformation
+/kloudformation
 template.yml
-lib
 out
 build

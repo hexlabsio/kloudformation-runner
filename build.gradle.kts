@@ -45,7 +45,6 @@ dependencies {
 
 val shadowJar by tasks.getting(ShadowJar::class) {
     archiveClassifier.set("uber")
-    from(sourceSets["main"].allSource)
     manifest {
         attributes(mapOf("Main-Class" to "io.hexlabs.kloudformation.runner.DeployKt"))
     }
