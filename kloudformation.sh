@@ -1,13 +1,16 @@
 #!/bin/bash -e
 
+KOTLIN_VERSION="1.3.21"
+KOTLIN_LIBRARIES=("stdlib" "stdlib-common" "stdlib-jdk8" "reflect")
 RUNNER_VERSION="0.1.XXXXX"
-DEFAULT_VERSION="0.1.113"
+DEFAULT_VERSION="0.1.116"
 VERSION=${DEFAULT_VERSION}
 
 STACK_FILE="Stack.kt"
 STACK_CLASS="Stack"
 TEMPLATE_NAME="template.yml"
 QUITE=
+JSON=
 MODULES=()
 
 VERSION_ARG=("-version" "arg" "VERSION")
@@ -19,9 +22,10 @@ MODULE_ARG=("-module" "array" "MODULES")
 M_ARG=("-m" "array" "MODULES")
 QUITE_ARG=("-quite" "toggle" "QUITE")
 Q_ARG=("-q" "toggle" "QUITE")
+JSON_ARG=("-json" "toggle" "JSON")
 
-ARGUMENTS=("STACK_FILE_ARG" "STACK_CLASS_ARG" "TEMPLATE_NAME_ARG" "QUITE_ARG" "Q_ARG" "MODULE_ARG" "M_ARG" "VERSION_ARG" "V_ARG")
-COMMANDS=("help" "transpile" "init" "version" "update"  "deploy")
+ARGUMENTS=("STACK_FILE_ARG" "STACK_CLASS_ARG" "TEMPLATE_NAME_ARG" "QUITE_ARG" "Q_ARG" "MODULE_ARG" "M_ARG" "VERSION_ARG" "V_ARG" "JSON_ARG")
+COMMANDS=("help" "transpile" "init" "version" "update"  "deploy" "invert")
 
 SELECTED_COMMAND="transpile"
 
@@ -100,6 +104,8 @@ OPTIONS (Replace names in angle braces << Name >>)
    -module, -m <<Module>>@<<Version>> Includes a KloudFormation Module Named kloudformation-<<Module>>-module
    -version, -v <<Version>>           Sets KloudFormation Version (Default = ${DEFAULT_VERSION})
    init                               Initialise a Stack with class name matching -stack-class and filename matching -stack-file
+   deploy                             Deploys -template to AWS
+   invert                             Inverts -tempate (CloudFormation) into a KloudFormation stack
    version                            Prints the Version of KloudFormation
    update                             Downloads the latest version of this script and installs it
    help                               Prints this
@@ -125,6 +131,7 @@ init() {
     if [[ -f "${STACK_FILE}" ]]; then
         echo ERROR: ${STACK_FILE} already exists
     else
+        if [[ ${STACK_FILE} == *"/"* ]]; then mkdir -p ${STACK_FILE%/*}; fi
         echo "import io.kloudformation.KloudFormation
 import io.kloudformation.StackBuilder
 
@@ -223,27 +230,63 @@ kloudformationJar() {
     fi
 }
 
-transpile() {
-    list_arguments
-    if [[ ! -f "${STACK_FILE}" ]]; then
-        echo ERROR: Could not find ${STACK_FILE}
-        exit 1
+kotlinJar() {
+    local NAME=kotlin-${1}
+    local FILE="${NAME}-${KOTLIN_VERSION}.jar"
+    local URL=https://bintray.com/bintray/jcenter/download_file?file_path=org%2Fjetbrains%2Fkotlin%2F${NAME}%2F${KOTLIN_VERSION}%2F${NAME}-${KOTLIN_VERSION}.jar
+    if [[ ! -f "${FILE}" ]]; then
+        log Downloading ${NAME} from ${URL}
+        curl "${URL}" -slient -L -o "${FILE}"
     fi
-    mkdir -p kloudformation
-    cd kloudformation
-    javaCommand
-    kotlinCommand
-    kloudformationJar ${VERSION}
+}
+
+kotlinJars() {
+    for jar in ${KOTLIN_LIBRARIES[@]}; do
+      kotlinJar ${jar}
+    done
+}
+
+setClasspath() {
     CLASSPATH="kloudformation/kloudformation-${VERSION}.jar"
     for module in ${MODULES[@]}; do
         MODULE_VERSION=( ${module/@/ } )
         moduleDownload ${MODULE_VERSION[@]}
         CLASSPATH=${CLASSPATH}:kloudformation/kloudformation-${MODULE_VERSION[0]}-module-${MODULE_VERSION[1]}.jar
     done
+    for jar in ${KOTLIN_LIBRARIES[@]}; do
+        CLASSPATH=${CLASSPATH}:kloudformation/kotlin-${jar}-${KOTLIN_VERSION}.jar
+    done
+}
+
+downloadClasspath() {
+    list_arguments
+    mkdir -p kloudformation
+    cd kloudformation
+    javaCommand
+    kotlinCommand
+    kloudformationJar ${VERSION}
+    kotlinJars
+    setClasspath
     cd ..
+}
+
+transpile() {
+    if [[ ! -f "${STACK_FILE}" ]]; then
+        echo ERROR: Could not find ${STACK_FILE}
+        exit 1
+    fi
+    downloadClasspath
+    local JSON_YAML=yaml
+    if [[ ! -z "$JSON" ]]; then JSON_YAML=json; fi
     "$KOTLIN" -classpath ${CLASSPATH} "$STACK_FILE" -include-runtime -d kloudformation/stack.jar
-    "$JAVA" -classpath kloudformation/stack.jar:${CLASSPATH} io.kloudformation.StackBuilderKt "$STACK_CLASS" "$TEMPLATE_NAME"
+    "$JAVA" -classpath kloudformation/stack.jar:${CLASSPATH} io.kloudformation.StackBuilderKt "$STACK_CLASS" "$TEMPLATE_NAME" "$JSON_YAML"
     log Template generated to ${TEMPLATE_NAME}
+}
+
+invert() {
+    downloadClasspath
+    "$JAVA" -classpath ${CLASSPATH} io.kloudformation.InverterKt "$TEMPLATE_NAME" "" "$STACK_FILE"
+    log Stack File created at "$STACK_FILE"
 }
 
 version() {
