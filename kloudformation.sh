@@ -2,13 +2,15 @@
 
 KOTLIN_VERSION="1.3.21"
 KOTLIN_LIBRARIES=("stdlib" "stdlib-common" "stdlib-jdk8" "reflect")
-RUNNER_VERSION="0.1.XXXXX"
+RUNNER_VERSION="0.1.32"
 DEFAULT_VERSION="0.1.116"
 VERSION=${DEFAULT_VERSION}
 
 STACK_FILE="Stack.kt"
 STACK_CLASS="Stack"
+STACK_NAME=""
 TEMPLATE_NAME="template.yml"
+REGION="eu-west-1"
 QUITE=
 JSON=
 MODULES=()
@@ -16,15 +18,18 @@ MODULES=()
 VERSION_ARG=("-version" "arg" "VERSION")
 V_ARG=("-v" "arg" "VERSION")
 STACK_FILE_ARG=("-stack-file" "arg" "STACK_FILE")
+STACK_NAME_ARG=("-stack-name" "arg" "STACK_NAME")
 STACK_CLASS_ARG=("-stack-class" "arg" "STACK_CLASS")
 TEMPLATE_NAME_ARG=("-template" "arg" "TEMPLATE_NAME")
+REGION_ARG=("-region" "arg" "REGION")
+R_ARG=("-r" "arg" "REGION")
 MODULE_ARG=("-module" "array" "MODULES")
 M_ARG=("-m" "array" "MODULES")
 QUITE_ARG=("-quite" "toggle" "QUITE")
 Q_ARG=("-q" "toggle" "QUITE")
 JSON_ARG=("-json" "toggle" "JSON")
 
-ARGUMENTS=("STACK_FILE_ARG" "STACK_CLASS_ARG" "TEMPLATE_NAME_ARG" "QUITE_ARG" "Q_ARG" "MODULE_ARG" "M_ARG" "VERSION_ARG" "V_ARG" "JSON_ARG")
+ARGUMENTS=("STACK_FILE_ARG" "STACK_CLASS_ARG" "TEMPLATE_NAME_ARG" "QUITE_ARG" "Q_ARG" "MODULE_ARG" "M_ARG" "VERSION_ARG" "V_ARG" "JSON_ARG" "REGION_ARG" "R_ARG" "STACK_NAME_ARG")
 COMMANDS=("help" "transpile" "init" "version" "update"  "deploy" "invert")
 
 SELECTED_COMMAND="transpile"
@@ -99,12 +104,14 @@ help () {
 OPTIONS (Replace names in angle braces << Name >>)
    -q, -quite                         Makes logging less verbose (Default off)
    -stack-file <<File Name>>          Name of Kotlin file containing your stack code (Default = Stack.kt)
+   -stack-name <<Stack Name>>         Name of CloudFormation stack used for deploying (Not set by Default)
    -stack-class <<Class Name>>        Name of the class inside -stack-file implementing io.kloudformation.StackBuilder (Default = Stack)
    -template <<Template Name>>        Name of the output template file (Default = template.yml)
+   -region, -r <<Region>>             The AWS Region to deploy to (Default = eu-west-1)
    -module, -m <<Module>>@<<Version>> Includes a KloudFormation Module Named kloudformation-<<Module>>-module
    -version, -v <<Version>>           Sets KloudFormation Version (Default = ${DEFAULT_VERSION})
    init                               Initialise a Stack with class name matching -stack-class and filename matching -stack-file
-   deploy                             Deploys -template to AWS
+   deploy                             Deploys -template to AWS with Stack Named -stack-name
    invert                             Inverts -tempate (CloudFormation) into a KloudFormation stack
    version                            Prints the Version of KloudFormation
    update                             Downloads the latest version of this script and installs it
@@ -223,6 +230,15 @@ moduleDownload() {
     fi
 }
 
+kloudformationRunnerJar() {
+    local FILE="kloudformation-runner-${RUNNER_VERSION}-uber.jar"
+    local URL=https://bintray.com/hexlabsio/kloudformation/download_file?file_path=io%2Fhexlabs%2Fkloudformation-runner%2F${RUNNER_VERSION}%2F${FILE}
+    if [[ ! -f "kloudformation/${FILE}" ]]; then
+        log Downloading kloudformation-runner from ${URL}
+        curl "${URL}" -slient -L -o "kloudformation/${FILE}"
+    fi
+}
+
 kloudformationJar() {
     if [[ ! -f kloudformation-${1}.jar ]]; then
         log Downloading KloudFormation ${1}
@@ -299,8 +315,13 @@ update() {
 }
 
 deploy() {
+    if [[ -z "${STACK_NAME}" ]]; then
+        echo Argument -stack-name must be set to deploy to AWS
+        exit 1
+    fi
     transpile
-    echo pretending to deploy version ${RUNNER_VERSION}
+    kloudformationRunnerJar
+    "$JAVA" -jar kloudformation/kloudformation-runner-${RUNNER_VERSION}-uber.jar ${STACK_NAME_ARG[0]} "$STACK_NAME" ${TEMPLATE_NAME_ARG[0]} "$TEMPLATE_NAME" ${REGION_ARG[0]} "$REGION"
 }
 
 ${SELECTED_COMMAND}

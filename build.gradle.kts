@@ -43,6 +43,14 @@ dependencies {
     testRuntime(group = "org.junit.jupiter", name = "junit-jupiter-engine", version = "5.0.0")
 }
 
+sourceSets {
+    main {
+        java {
+            srcDirs("src/main/kotlin")
+        }
+    }
+}
+
 tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "1.8"
 }
@@ -69,7 +77,6 @@ configure<GithookExtension> {
 
 val sourcesJar by tasks.creating(Jar::class) {
     classifier = "sources"
-    println(sourceSets["main"].allSource)
     from(sourceSets["main"].allSource)
 }
 
