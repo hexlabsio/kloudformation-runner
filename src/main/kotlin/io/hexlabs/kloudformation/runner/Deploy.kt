@@ -10,6 +10,7 @@ import software.amazon.awssdk.services.cloudformation.model.Stack
 import software.amazon.awssdk.services.cloudformation.model.StackResource
 import software.amazon.awssdk.services.cloudformation.model.StackStatus
 import software.amazon.awssdk.services.cloudformation.model.UpdateStackRequest
+import software.amazon.awssdk.services.cloudformation.model.DeleteStackRequest
 import java.io.File
 import java.lang.IllegalArgumentException
 
@@ -20,15 +21,16 @@ sealed class Option {
 }
 data class Options(val options: List<Option> = emptyList()) {
     companion object {
+        fun isBinary(arg: String) = arg.startsWith("-") && !arg.startsWith("--")
         fun from(args: List<String>): Options {
             return if (args.isEmpty()) Options()
             else {
-                val initial = args.first().let { if (it.startsWith("-")) Option.WaitingOption(it) else Option.MonoOption(it) }
+                val initial = args.first().let { if (isBinary(it)) Option.WaitingOption(it) else Option.MonoOption(it) }
                 val initialOptions = if (initial is Option.WaitingOption) emptyList() else listOf(initial)
                 val options = args.drop(1).fold(initial to initialOptions) { (previous, options), arg ->
                     when {
                         previous is Option.WaitingOption -> Option.BinaryOption(previous.name, arg).let { it to (options + it) }
-                        arg.startsWith("-") -> Option.WaitingOption(arg) to options
+                        isBinary(arg) -> Option.WaitingOption(arg) to options
                         else -> Option.MonoOption(arg).let { it to (options + it) }
                     }
                 }
@@ -38,18 +40,51 @@ data class Options(val options: List<Option> = emptyList()) {
     }
 }
 fun main(args: Array<String>) {
-    val options = Options.from(args.toList()).options.filter { it is Option.BinaryOption }.map { it as Option.BinaryOption }
-    val stackName = options.find { it.name == "-stack-name" }?.value ?: throw IllegalArgumentException("Expected -stack-name argument")
+    val allOptions = Options.from(args.toList()).options
+    val options = allOptions.filter { it is Option.BinaryOption }.map { it as Option.BinaryOption }
+    val commands = allOptions.filter { it is Option.MonoOption }.map { it as Option.MonoOption }
+    val command = commands.firstOrNull()?.name ?: "deploy"
     val region = options.find { it.name == "-region" }?.value ?: throw IllegalArgumentException("Expected -region argument")
-    val templateFile = File(options.find { it.name == "-template" }?.value ?: throw IllegalArgumentException("Expected -template argument"))
-    if (!templateFile.exists()) throw IllegalArgumentException("Could not find file $templateFile")
-    else StackBuilder(Region.of(region)).createOrUpdate(stackName, templateFile.readText())
+    val stackBuilder = StackBuilder(Region.of(region))
+    when (command) {
+        "list" -> stackBuilder.listStacks()
+        "deploy" -> {
+            val stackName = options.find { it.name == "-stack-name" }?.value ?: throw IllegalArgumentException("Expected -stack-name argument")
+            val templateFile = File(
+                options.find { it.name == "-template" }?.value
+                    ?: throw IllegalArgumentException("Expected -template argument")
+            )
+            if (!templateFile.exists()) throw IllegalArgumentException("Could not find file $templateFile")
+            else stackBuilder.createOrUpdate(stackName, templateFile.readText())
+        }
+        "delete" -> {
+            val stackNames = options.find { it.name.startsWith("-stack-name") }?.value ?: throw IllegalArgumentException("Expected -stack-name or -stack-names argument")
+            val force = commands.find { it.name == "--force" }
+            stackNames.split(",").forEach { stackName ->
+                if (stackBuilder.stackWith(stackName) != null) {
+                    if (force == null) {
+                        System.out.println("Are you sure you want to delete the stack named $stackName in the $region region? (y/n)")
+                        val answer = readLine()
+                        if (answer == "y") {
+                            System.out.println("You may also use the --force argument to ignore prompt")
+                            stackBuilder.deleteStack(stackName)
+                        }
+                    } else stackBuilder.deleteStack(stackName)
+                } else {
+                    println()
+                    println("Stack $stackName in region $region does not exist")
+                    println()
+                }
+            }
+        }
+        else -> System.err.println("Command $command not recognised try deploy or delete")
+    }
 }
 
 class StackBuilder(val region: Region, val client: CloudFormationClient = CloudFormationClient.builder().region(region).build()) {
 
     private fun stackExistsWith(name: String): Boolean = stackWith(name) != null
-    private fun stackWith(name: String): Stack? = try {
+    fun stackWith(name: String): Stack? = try {
         client.describeStacks(DescribeStacksRequest.builder().stackName(name).build()).stacks().firstOrNull()
     } catch (error: CloudFormationException) {
         if (error.awsErrorDetails().errorMessage() == "Stack with id $name does not exist") null
@@ -71,6 +106,9 @@ class StackBuilder(val region: Region, val client: CloudFormationClient = CloudF
         StackStatus.CREATE_COMPLETE,
         StackStatus.UPDATE_COMPLETE
     )
+    private val deleteSuccessStatuses = listOf(
+        StackStatus.DELETE_COMPLETE
+    )
     private fun update(stack: String, template: String) {
         client.updateStack(UpdateStackRequest.builder().stackName(stack).templateBody(template).build())
         println()
@@ -83,7 +121,12 @@ class StackBuilder(val region: Region, val client: CloudFormationClient = CloudF
         println("Creating Stack $stack")
         println()
     }
-
+    private fun delete(stack: String) {
+        client.deleteStack(DeleteStackRequest.builder().stackName(stack).build())
+        println()
+        println("Deleting Stack $stack")
+        println()
+    }
     private fun handle(error: CloudFormationException) {
         val errorDetails = error.awsErrorDetails()
         val errorCode = errorDetails.errorCode()
@@ -95,6 +138,36 @@ class StackBuilder(val region: Region, val client: CloudFormationClient = CloudF
             } else System.err.println(error.message)
         } else System.err.println(error.message)
     }
+    fun listStacks() {
+        println()
+        println("Stacks in the $region region")
+        println()
+        client.describeStacksPaginator().stacks().stream().map { it.stackName() to it.stackStatusAsString() }.forEach {
+                (stack, status) -> println("$stack $status")
+        }
+        println()
+    }
+    fun deleteStack(name: String) {
+        println()
+        println("#################### Stack Delete #######################")
+        println()
+        try {
+            delete(name)
+            val result = waitFor(name, deleteSuccessStatuses)
+            if (result.success) {
+                println()
+                println("Stack Delete Complete")
+                println()
+            } else {
+                System.err.println()
+                System.err.println("Stack Delete Failure")
+                System.err.println()
+                System.exit(1)
+            }
+        } catch (error: CloudFormationException) {
+            handle(error)
+        }
+    }
 
     fun createOrUpdate(stackName: String, template: String) {
         println()
@@ -103,7 +176,7 @@ class StackBuilder(val region: Region, val client: CloudFormationClient = CloudF
         try {
             if (stackExistsWith(stackName)) update(stackName, template)
             else create(stackName, template)
-            val result = waitFor(stackName)
+            val result = waitFor(stackName, successStatuses)
             if (result.success) {
                 println()
                 println("Stack Update Complete")
@@ -134,7 +207,7 @@ class StackBuilder(val region: Region, val client: CloudFormationClient = CloudF
             .forEach { println(it.logicalResourceId() + " has been removed") }
     }
 
-    private fun waitFor(stackName: String, previousStackStatus: String? = null, previousStackReason: String? = null, previousResources: List<StackResource> = emptyList()): Result {
+    private fun waitFor(stackName: String, successStatuses: List<StackStatus>, previousStackStatus: String? = null, previousStackReason: String? = null, previousResources: List<StackResource> = emptyList()): Result {
         return stackWith(stackName)?.let { stack ->
             val status = stack.stackStatus()
             val reason = stack.stackStatusReason()
@@ -148,8 +221,8 @@ class StackBuilder(val region: Region, val client: CloudFormationClient = CloudF
                 Result(successStatuses.contains(status))
             } else {
                 Thread.sleep(5000)
-                waitFor(stackName, status.toString(), reason, resources)
+                waitFor(stackName, successStatuses, status.toString(), reason, resources)
             }
-        } ?: Result(success = false)
+        } ?: Result(success = successStatuses.contains(StackStatus.DELETE_COMPLETE))
     }
 }

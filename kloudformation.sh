@@ -13,6 +13,7 @@ STACK_NAME=""
 TEMPLATE_NAME="template.yml"
 REGION="eu-west-1"
 QUITE=
+FORCE=
 JSON=
 MODULES=()
 
@@ -29,10 +30,12 @@ MODULE_ARG=("-module" "array" "MODULES")
 M_ARG=("-m" "array" "MODULES")
 QUITE_ARG=("-quite" "toggle" "QUITE")
 Q_ARG=("-q" "toggle" "QUITE")
+FORCE_ARG=("-force" "toggle" "FORCE")
+F_ARG=("-f" "toggle" "FORCE")
 JSON_ARG=("-json" "toggle" "JSON")
 
-ARGUMENTS=("STACK_FILE_ARG" "STACK_CLASS_ARG" "TEMPLATE_NAME_ARG" "QUITE_ARG" "Q_ARG" "MODULE_ARG" "M_ARG" "VERSION_ARG" "V_ARG" "JSON_ARG" "REGION_ARG" "R_ARG" "STACK_NAME_ARG" "INSTALL_DIRECTORY_ARG")
-COMMANDS=("help" "transpile" "init" "version" "update"  "deploy" "invert" "idea")
+ARGUMENTS=("STACK_FILE_ARG" "STACK_CLASS_ARG" "TEMPLATE_NAME_ARG" "QUITE_ARG" "Q_ARG" "MODULE_ARG" "M_ARG" "VERSION_ARG" "V_ARG" "JSON_ARG" "REGION_ARG" "R_ARG" "STACK_NAME_ARG" "INSTALL_DIRECTORY_ARG" "FORCE_ARG" "F_ARG")
+COMMANDS=("help" "transpile" "init" "version" "update"  "deploy" "invert" "idea" "delete" "list")
 
 SELECTED_COMMAND="transpile"
 
@@ -122,7 +125,8 @@ machine () {
 help () {
     echo "
 OPTIONS (Replace names in angle braces << Name >>)
-   -q, -quite                         Makes logging less verbose (Default off)
+   -quite, -q                         Makes logging less verbose (Default off)
+   -force, -f                         Used to force Deletes without prompt
    -stack-file <<File Name>>          Name of Kotlin file containing your stack code (Default = stack/Stack.kt)
    -stack-name <<Stack Name>>         Name of CloudFormation stack used for deploying (Not set by Default)
    -stack-class <<Class Name>>        Name of the class inside -stack-file implementing io.kloudformation.StackBuilder (Default = Stack)
@@ -133,6 +137,8 @@ OPTIONS (Replace names in angle braces << Name >>)
    -install-dir <Directory>>          Directory to install kloudformation to (Default = ~/.kloudformation)
    init                               Initialise a Stack with class name matching -stack-class and filename matching -stack-file
    deploy                             Deploys -template to AWS with Stack Named -stack-name
+   delete                             Deletes -stack-name in -region (Use comma delimited names for multiple)
+   list                               Lists all stacks in -region
    invert                             Inverts -template (CloudFormation) into a KloudFormation stack
    version                            Prints the Version of KloudFormation
    update                             Downloads the latest version of this script and installs it
@@ -157,6 +163,7 @@ list_arguments() {
     log -stack-class: ${STACK_CLASS}
     log -template: ${TEMPLATE_NAME}
     log -install-dir: ${INSTALL_DIRECTORY}
+    log -region: ${REGION}
     log
 }
 
@@ -358,6 +365,23 @@ deploy() {
     transpile
     kloudformationRunnerJar
     "$JAVA" -jar ${INSTALL_DIRECTORY}/kloudformation-runner-${RUNNER_VERSION}-all.jar ${STACK_NAME_ARG[0]} "$STACK_NAME" ${TEMPLATE_NAME_ARG[0]} "$TEMPLATE_NAME" ${REGION_ARG[0]} "$REGION"
+}
+
+delete() {
+    if [[ -z "${STACK_NAME}" ]]; then
+        error Argument -stack-name must be set to delete
+    fi
+    local FORCEFLAG=""
+    if [[ ! -z "${FORCE}" ]]; then FORCEFLAG="--force ";fi
+    downloadClasspath
+    kloudformationRunnerJar
+    "$JAVA" -jar ${INSTALL_DIRECTORY}/kloudformation-runner-${RUNNER_VERSION}-all.jar delete ${FORCEFLAG}${STACK_NAME_ARG[0]} "$STACK_NAME" ${REGION_ARG[0]} "$REGION"
+}
+
+list() {
+    downloadClasspath
+    kloudformationRunnerJar
+    "$JAVA" -jar ${INSTALL_DIRECTORY}/kloudformation-runner-${RUNNER_VERSION}-all.jar list ${REGION_ARG[0]} "$REGION"
 }
 
 idea() {
