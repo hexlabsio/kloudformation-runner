@@ -8,9 +8,9 @@ import io.kloudformation.resource.aws.certificatemanager.certificate
 const val certificateVariable = "InstallKloudFormationCertificate"
 const val domain = "install.kloudformation.hexlabs.io"
 
-class CertInUsEast1: StackBuilder{
+class CertInUsEast1 : StackBuilder {
     override fun KloudFormation.create() {
-        val certificate = certificate(+"www.$domain"){
+        val certificate = certificate(+"www.$domain") {
             subjectAlternativeNames(listOf(+domain))
             domainValidationOptions(listOf(DomainValidationOption(
                     domainName = +domain,
@@ -24,16 +24,16 @@ class CertInUsEast1: StackBuilder{
     }
 }
 
-class Site: StackBuilder {
+class Site : StackBuilder {
     override fun KloudFormation.create() {
         s3Website {
-            s3Bucket { modify {
+            s3Bucket {
                 bucketName("install-kloudformation")
                 websiteConfiguration {
                     indexDocument("install-kloudformation.sh")
                     errorDocument("install-kloudformation.sh")
                 }
-            }}
+            }
             s3Distribution(
                     domain = +"install.kloudformation.hexlabs.io",
                     certificateArn = +"arn:aws:acm:us-east-1:662158168835:certificate/bbb425c8-c79b-40bb-80a1-02d00f764dba"

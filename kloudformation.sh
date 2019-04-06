@@ -3,7 +3,7 @@
 KOTLIN_VERSION="1.3.21"
 KOTLIN_LIBRARIES=("stdlib" "stdlib-common" "stdlib-jdk8" "reflect")
 RUNNER_VERSION="0.1.XXXXX"
-DEFAULT_VERSION="0.1.116"
+DEFAULT_VERSION="0.1.118"
 VERSION=${DEFAULT_VERSION}
 INSTALL_DIRECTORY=~/.kloudformation
 
@@ -386,12 +386,12 @@ list() {
 
 idea() {
 
-if [[ ! `ls` ]]; then
-init
-fi
-DIRECTORY_NAME=${PWD##*/}
-mkdir -p .idea/libraries
-echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+    if [[ ! `ls` ]]; then
+    init
+    fi
+    DIRECTORY_NAME=${PWD##*/}
+    mkdir -p .idea/libraries
+    echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <module type=\"JAVA_MODULE\" version=\"4\">
   <component name=\"NewModuleRootManager\" inherit-compiler-output=\"true\">
     <exclude-output />
@@ -404,7 +404,7 @@ echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
   </component>
 </module>" > ".idea/${DIRECTORY_NAME}.iml"
 
-echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+    echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <project version=\"4\">
   <component name=\"ProjectModuleManager\">
     <modules>
@@ -413,16 +413,19 @@ echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
   </component>
 </project>" > ".idea/modules.xml"
 
-echo "<component name=\"libraryTable\">
+    echo "<component name=\"libraryTable\">
   <library name=\"kloudformation\">
     <CLASSES>
-      <root url=\"jar://${INSTALL_DIRECTORY}/kloudformation-${VERSION}.jar!/\" />
-" > ".idea/libraries/kloudformation.xml"
-for jar in ${KOTLIN_LIBRARIES[@]}; do
-  echo "      <root url=\"jar://${INSTALL_DIRECTORY}/kotlin-${jar}-${KOTLIN_VERSION}.jar!/\" />
-" >> ".idea/libraries/kloudformation.xml"
-done
-echo "    </CLASSES>
+      <root url=\"jar://${INSTALL_DIRECTORY}/kloudformation-${VERSION}.jar!/\" />" > ".idea/libraries/kloudformation.xml"
+    for JAR in ${KOTLIN_LIBRARIES[@]}; do
+      echo "      <root url=\"jar://${INSTALL_DIRECTORY}/kotlin-${JAR}-${KOTLIN_VERSION}.jar!/\" />" >> ".idea/libraries/kloudformation.xml"
+    done
+    for module in ${MODULES[@]}; do
+        MODULE_VERSION=( ${module/@/ } )
+        JAR="kloudformation-${MODULE_VERSION[0]}-module-${MODULE_VERSION[1]}"
+        echo "      <root url=\"jar://${INSTALL_DIRECTORY}/${JAR}.jar!/\" />" >> ".idea/libraries/kloudformation.xml"
+    done
+    echo "    </CLASSES>
     <JAVADOC />
     <SOURCES />
   </library>

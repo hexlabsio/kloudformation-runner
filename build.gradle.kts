@@ -32,16 +32,33 @@ version = projectVersion
 repositories {
     jcenter()
     mavenCentral()
+    maven("https://dl.bintray.com/hexlabsio/kloudformation")
 }
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
     implementation("software.amazon.awssdk:cloudformation:2.5.23")
     runtime("org.slf4j:slf4j-simple:1.7.25")
+    testImplementation("io.kloudformation:kloudformation:0.1.118")
+    testImplementation("io.hexlabs:kloudformation-s3-module:0.1.9")
     testImplementation(group = "org.jetbrains.kotlin", name = "kotlin-test-junit5", version = "1.3.21")
     testImplementation(group = "org.junit.jupiter", name = "junit-jupiter-api", version = "1.3.21")
     testRuntime(group = "org.junit.jupiter", name = "junit-jupiter-engine", version = "5.0.0")
 }
+
+sourceSets {
+    main {
+        java {
+            srcDirs("src/main/kotlin")
+        }
+    }
+    test {
+        java {
+            srcDirs("src/test/kotlin", "stack")
+        }
+    }
+}
+
 
 val shadowJar by tasks.getting(ShadowJar::class) {
     archiveClassifier.set("uber")
