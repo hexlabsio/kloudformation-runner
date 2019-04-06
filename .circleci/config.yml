@@ -24,17 +24,28 @@ jobs:
         - ~/.gradle
         key: gradle-{{ checksum "build.gradle.kts" }}
 
+    - restore_cache:
+        keys:
+        - kloudformation-{{ checksum "kloudformation.sh" }}
+
     - run:
         name: Update Version Number in Scripts
         command: awk -v CIRCLE_BUILD_NUM=${CIRCLE_BUILD_NUM} '{sub(/XXXXX/, CIRCLE_BUILD_NUM)}1' kloudformation.sh > temp.sh && mv temp.sh kloudformation.sh && chmod +x kloudformation.sh
 
     - run:
-        name: Deploy Stacks
-        command: |
-          ./kloudformation.sh deploy -region us-east-1 -stack-name kloudformation-runner-cert -stack-file stack/Stack.kt -stack-class CertInUsEast1 -template cert-stack.yml -m s3@0.1.8
-          ./kloudformation.sh deploy -region eu-west-1 -stack-name kloudformation-runner-site -stack-file stack/Stack.kt -stack-class Site -template site-stack.yml -m s3@0.1.8
+        name: Deploy Certificate Stack in US-EAST-1
+        command: ./kloudformation.sh deploy -region us-east-1 -stack-name kloudformation-runner-cert -stack-file stack/Stack.kt -stack-class CertInUsEast1 -template cert-stack.yml -m s3@0.1.8
 
-    - store_artifacts:
+    - save_cache:
+        paths:
+        - ~/.kloudformation
+        key: kloudformation-{{ checksum "kloudformation.sh" }}
+
+    - run:
+        name: Deploy Site Stack in EU-WEST-1
+        command: ./kloudformation.sh deploy -region eu-west-1 -stack-name kloudformation-runner-site -stack-file stack/Stack.kt -stack-class Site -template site-stack.yml -m s3@0.1.8
+
+        - store_artifacts:
         path: cert-stack.yml
 
     - store_artifacts:

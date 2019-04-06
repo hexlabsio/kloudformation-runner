@@ -89,7 +89,9 @@ class StackBuilder(val region: Region, val client: CloudFormationClient = CloudF
         val errorCode = errorDetails.errorCode()
         if (errorCode == "ValidationError") {
             if (errorDetails.errorMessage() == "No updates are to be performed.") {
+                println()
                 println("Update Complete (No Change)")
+                println()
             } else System.err.println(error.message)
         } else System.err.println(error.message)
     }
