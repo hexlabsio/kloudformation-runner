@@ -42,11 +42,17 @@ log () {
     if [[ -z ${QUITE} ]]; then echo $@; fi
 }
 
+error () {
+    echo "ERROR: $@"
+    echo
+    exit 1
+}
+
 checkRequirements() {
     local FAILED=
     for requirement in ${REQUIRED_COMMANDS[@]}; do
         if [[ ! `which $requirement` ]]; then
-            echo Could not find $requirement command exiting
+            echo "ERROR: Could not find $requirement command"
             FAILED=true
         fi
     done
@@ -94,8 +100,7 @@ for arg in "$@"; do
             done
             if [[ ${FOUND_ARG} == false ]]; then
                 LAST_ARG="UNKNOWN"
-                echo Argument ${arg} cannot be found
-                exit 1
+                error Argument ${arg} cannot be found
             fi
         else
             SELECTED_COMMAND=${arg}
@@ -146,14 +151,22 @@ list_arguments() {
     if [[ "${MODULE_LIST}" != "" ]]; then
         log Modules: ${MODULE_LIST}
     fi
-    log Arguments: \[ -stack-file: ${STACK_FILE}, -stack-class: ${STACK_CLASS}, -template: ${TEMPLATE_NAME}, -install-dir: ${INSTALL_DIRECTORY}]
+    log
+    log Arguments:
+    log -stack-file: ${STACK_FILE}
+    log -stack-class: ${STACK_CLASS}
+    log -template: ${TEMPLATE_NAME}
+    log -install-dir: ${INSTALL_DIRECTORY}
+    log
 }
 
 init() {
     downloadClasspath
+    log
     log Initialising ${STACK_FILE}
+    log
     if [[ -f "${STACK_FILE}" ]]; then
-        echo ERROR: ${STACK_FILE} already exists
+        error ${STACK_FILE} already exists
     else
         if [[ ${STACK_FILE} == *"/"* ]]; then mkdir -p ${STACK_FILE%/*}; fi
         echo "import io.kloudformation.KloudFormation
@@ -206,8 +219,7 @@ javaCommand() {
             export JAVA_HOME=${INSTALL_DIRECTORY}/java/jdk-8u202-ojdkbuild-linux-x64
             JAVA=${INSTALL_DIRECTORY}/java/jdk-8u202-ojdkbuild-linux-x64/bin/java
         else
-            echo ERROR: Could not find Java 1.8, Install Java or set JAVA_HOME
-            exit 1
+            error Could not find Java 1.8, Install Java or set JAVA_HOME
         fi
     fi
 }
@@ -242,8 +254,7 @@ moduleDownload() {
             curl -sSL ${URL} -o ${FILE_NAME}
             MODULES+=( "${FILE_NAME}" )
         else
-           echo ERROR: Could not download ${NAME} from ${URL}
-           exit 1
+           error Could not download ${NAME} from ${URL}
         fi
     fi
 }
@@ -296,7 +307,6 @@ setClasspath() {
 
 downloadClasspath() {
     checkRequirements
-    list_arguments
     mkdir -p ${INSTALL_DIRECTORY}
     local CURRENT_DIR=${PWD}
     cd ${INSTALL_DIRECTORY}
@@ -309,22 +319,27 @@ downloadClasspath() {
 }
 
 transpile() {
-    if [[ ! -f "${STACK_FILE}" ]]; then
-        echo ERROR: Could not find ${STACK_FILE}
-        exit 1
-    fi
+    log
+    log Transpiling ${STACK_FILE}
+    log
+    if [[ ! -f "${STACK_FILE}" ]]; then error Could not find ${STACK_FILE}; fi
     downloadClasspath
     local JSON_YAML=yaml
     if [[ ! -z "$JSON" ]]; then JSON_YAML=json; fi
     "$KOTLIN" -classpath ${CLASSPATH} "$STACK_FILE" -include-runtime -d ${INSTALL_DIRECTORY}/stack.jar
     "$JAVA" -classpath ${INSTALL_DIRECTORY}/stack.jar:${CLASSPATH} io.kloudformation.StackBuilderKt "$STACK_CLASS" "$TEMPLATE_NAME" "$JSON_YAML"
+    log
     log Template generated to ${TEMPLATE_NAME}
+    log
 }
 
 invert() {
     downloadClasspath
+    log Inverting ${TEMPLATE_NAME}
+    log
     "$JAVA" -classpath ${CLASSPATH} io.kloudformation.InverterKt "$TEMPLATE_NAME" "" "$STACK_FILE"
     log Stack File created at "$STACK_FILE"
+    log
 }
 
 version() {
@@ -338,8 +353,7 @@ update() {
 
 deploy() {
     if [[ -z "${STACK_NAME}" ]]; then
-        echo Argument -stack-name must be set to deploy to AWS
-        exit 1
+        error Argument -stack-name must be set to deploy to AWS
     fi
     transpile
     kloudformationRunnerJar
@@ -392,8 +406,13 @@ echo "    </CLASSES>
     if [[ `which idea` ]]; then
         `which idea` .
     else
+        echo
         echo Open this directory in intelliJ to build your stack
+        echo
     fi
 }
-
+log
+log "############### KloudFormation ${VERSION} ##################"
+log
+list_arguments
 ${SELECTED_COMMAND}

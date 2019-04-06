@@ -73,11 +73,15 @@ class StackBuilder(val region: Region, val client: CloudFormationClient = CloudF
     )
     private fun update(stack: String, template: String) {
         client.updateStack(UpdateStackRequest.builder().stackName(stack).templateBody(template).build())
+        println()
         println("Updating Stack $stack")
+        println()
     }
     private fun create(stack: String, template: String) {
         client.createStack(CreateStackRequest.builder().stackName(stack).templateBody(template).build())
+        println()
         println("Creating Stack $stack")
+        println()
     }
 
     private fun handle(error: CloudFormationException) {
@@ -91,12 +95,23 @@ class StackBuilder(val region: Region, val client: CloudFormationClient = CloudF
     }
 
     fun createOrUpdate(stackName: String, template: String) {
+        println()
+        println("#################### Stack Deploy #######################")
+        println()
         try {
             if (stackExistsWith(stackName)) update(stackName, template)
             else create(stackName, template)
             val result = waitFor(stackName)
-            if (result.success) println("Stack Update Complete")
-            else System.err.println("Stack Update Failure")
+            if (result.success) {
+                println()
+                println("Stack Update Complete")
+                println()
+            } else {
+                System.err.println()
+                System.err.println("Stack Update Failure")
+                System.err.println()
+                System.exit(1)
+            }
         } catch (error: CloudFormationException) { handle(error) }
     }
 
