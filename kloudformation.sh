@@ -3,7 +3,7 @@
 KOTLIN_VERSION="1.3.21"
 KOTLIN_LIBRARIES=("stdlib" "stdlib-common" "stdlib-jdk8" "reflect")
 RUNNER_VERSION="0.1.XXXXX"
-DEFAULT_VERSION="0.1.118"
+DEFAULT_VERSION="0.1.119"
 VERSION=${DEFAULT_VERSION}
 INSTALL_DIRECTORY=~/.kloudformation
 
@@ -16,17 +16,25 @@ QUITE=
 FORCE=
 JSON=
 MODULES=()
+EXTRA_ARGS=()
 
-VERSION_ARG=("-version" "arg" "VERSION")
-V_ARG=("-v" "arg" "VERSION")
-STACK_FILE_ARG=("-stack-file" "arg" "STACK_FILE")
-STACK_NAME_ARG=("-stack-name" "arg" "STACK_NAME")
-STACK_CLASS_ARG=("-stack-class" "arg" "STACK_CLASS")
-TEMPLATE_NAME_ARG=("-template" "arg" "TEMPLATE_NAME")
-INSTALL_DIRECTORY_ARG=("-install-dir" "arg" "INSTALL_DIRECTORY")
-REGION_ARG=("-region" "arg" "REGION")
+BUCKET_ARG=("-bucket" "arg" "BUCKET" "Name of S3 Bucket to upload to")
+KEY_ARG=("-key" "arg" "KEY" "Location in S3 to upload to")
+LOCATION_ARG=("-location" "arg" "LOCATION" "Location of File or Directory to upload from")
+VERSION_ARG=("-version" "arg" "VERSION" "Sets KloudFormation Version (Default = ${DEFAULT_VERSION})")
+V_ARG=("-v" "arg" "VERSION" "Sets KloudFormation Version (Default = ${DEFAULT_VERSION})")
+STACK_FILE_ARG=("-stack-file" "arg" "STACK_FILE" "Name of Kotlin file containing your stack code (Default = stack/Stack.kt)")
+STACK_NAME_ARG=("-stack-name" "arg" "STACK_NAME" "Name of CloudFormation stack used for deploying")
+STACK_CLASS_ARG=("-stack-class" "arg" "STACK_CLASS" "Name of the class inside -stack-file implementing io.kloudformation.StackBuilder (Default = Stack)")
+TEMPLATE_NAME_ARG=("-template" "arg" "TEMPLATE_NAME" "Name of the output template file (Default = template.yml)")
+INSTALL_DIRECTORY_ARG=("-install-dir" "arg" "INSTALL_DIRECTORY" "Directory to install kloudformation to (Default = ~/.kloudformation)")
+REGION_ARG=("-region" "arg" "REGION" "An AWS region")
 R_ARG=("-r" "arg" "REGION")
-MODULE_ARG=("-module" "array" "MODULES")
+
+MODULE_ARG=("-module" "array" "MODULES" "Includes a KloudFormation Module Named kloudformation-<<Module>>-module")
+EXTRAS_ARG_ARG=("-arg" "array" "EXTRA_ARGS")
+A_ARG=("-a" "array" "EXTRA_ARGS")
+
 M_ARG=("-m" "array" "MODULES")
 QUITE_ARG=("-quite" "toggle" "QUITE")
 Q_ARG=("-q" "toggle" "QUITE")
@@ -34,8 +42,18 @@ FORCE_ARG=("-force" "toggle" "FORCE")
 F_ARG=("-f" "toggle" "FORCE")
 JSON_ARG=("-json" "toggle" "JSON")
 
-ARGUMENTS=("STACK_FILE_ARG" "STACK_CLASS_ARG" "TEMPLATE_NAME_ARG" "QUITE_ARG" "Q_ARG" "MODULE_ARG" "M_ARG" "VERSION_ARG" "V_ARG" "JSON_ARG" "REGION_ARG" "R_ARG" "STACK_NAME_ARG" "INSTALL_DIRECTORY_ARG" "FORCE_ARG" "F_ARG")
-COMMANDS=("help" "transpile" "init" "version" "update"  "deploy" "invert" "idea" "delete" "list")
+TRANSPILE_ARGS=("STACK_FILE_ARG" "STACK_CLASS_ARG" "TEMPLATE_NAME_ARG" "REGION_ARG" "JSON_ARG")
+INVERT_ARGS=("STACK_FILE_ARG" "TEMPLATE_NAME_ARG")
+COMMON_ARGS=("QUITE_ARG" "MODULE_ARG" "VERSION_ARG" "INSTALL_DIRECTORY_ARG" "EXTRAS_ARG_ARG")
+SHORT_ARGS=("Q_ARG" "M_ARG" "V_ARG" "R_ARG" "F_ARG" "A_ARG")
+UPLOAD_ARGS=("LOCATION_ARG" "KEY_ARG" "BUCKET_ARG" "REGION_ARG")
+DEPLOY_ARGS=("STACK_NAME_ARG" "REGION_ARG")
+LIST_ARGS=("REGION_ARG")
+DELETE_ARGS=("STACK_NAME_ARG" "REGION_ARG" "FORCE_ARG")
+ARGUMENTS=(${COMMON_ARGS[@]} ${TRANSPILE_ARGS[@]} ${SHORT_ARGS[@]} ${UPLOAD_ARGS[@]} ${DEPLOY_ARGS[@]} ${LIST_ARGS[@]} ${DELETE_ARGS[@]} ${INVERT_ARGS[@]})
+COMMANDS=("help" "transpile" "init" "version" "update"  "deploy" "invert" "idea" "delete" "list" "upload")
+
+EXTRA_ARGS=()
 
 SELECTED_COMMAND="transpile"
 
@@ -49,6 +67,68 @@ error () {
     echo "ERROR: $@"
     echo
     exit 1
+}
+
+log_arguments() {
+    for ARG in $@; do
+     eval "ACTUAL_ARG=\${${ARG}[2]}"
+     eval "ARG_TYPE=\${${ARG}[1]}"
+     if [[ "${ARG_TYPE}" == "toggle" ]]; then
+        eval "ARG_VALUE=\${${ACTUAL_ARG}}"
+        if [[ -z "${ARG_VALUE}" ]]; then
+            eval "log \${${ARG}[0]} = off"
+        else
+            eval "log \${${ARG}[0]} = on"
+        fi
+     elif [[ "${ARG_TYPE}" == "array" ]]; then
+        if [[ "${ACTUAL_ARG}" != "EXTRA_ARGS" ]]; then
+            eval "ARG_VALUE=\${${ARG}[2]}"
+            eval "ARG_VALUE_LIST=\${${ARG_VALUE}[@]}"
+            local ARG_VALUES=""
+            for ARG_VAL in ${ARG_VALUE_LIST[@]}; do
+                ARG_VALUES="${ARG_VALUES} ${ARG_VAL}"
+            done
+            eval "log \${${ARG}[0]} = ${ARG_VALUES}"
+        fi
+     else
+        eval "log \${${ARG}[0]} = \${${ACTUAL_ARG}}"
+     fi
+    done
+    log
+}
+require_arguments() {
+    REQUIRED_ARGS_NOT_SET=
+    for ARG in $@; do
+     eval "ACTUAL_ARG=\${${ARG}[2]}"
+     eval "ARG_TYPE=\${${ARG}[1]}"
+     if [[ "${ARG_TYPE}" == "arg" ]]; then
+        eval "ARG_VALUE=\${${ACTUAL_ARG}}"
+        if [[ -z "${ARG_VALUE}" ]]; then
+            eval "NOT_SET=\${${ARG}[0]}"
+            eval "DESCRIPTION=\${${ARG}[3]}"
+            REQUIRED_ARGS_NOT_SET="${REQUIRED_ARGS_NOT_SET}${NOT_SET} "
+            if [[ -z ${DESCRIPTION} ]]; then
+                eval "echo Argument not set \${${ARG}[0]}"
+            else
+                eval "echo Argument not set \${${ARG}[0]} \(${DESCRIPTION}\)"
+            fi
+        fi
+     fi
+    done
+    if [[ ! -z "${REQUIRED_ARGS_NOT_SET}" ]]; then
+        echo
+        error "Required Arguments not set: ${REQUIRED_ARGS_NOT_SET}"
+    fi
+}
+
+list_arguments() {
+    log Machine: $( machine )
+    log
+    log Arguments:
+    log_arguments $@
+    if [[ "${MODULE_LIST}" != "" ]]; then
+        log Modules: ${MODULE_LIST}
+    fi
 }
 
 checkRequirements() {
@@ -147,26 +227,6 @@ OPTIONS (Replace names in angle braces << Name >>)
     exit 0
 }
 
-list_arguments() {
-    log Machine: $( machine )
-    local MODULE_LIST=""
-    for module in ${MODULES[@]}; do
-        MODULE_VERSION=( ${module/@/ } )
-        MODULE_LIST="${MODULE_LIST} kloudformation-${MODULE_VERSION[0]}-module-${MODULE_VERSION[1]}"
-    done
-    if [[ "${MODULE_LIST}" != "" ]]; then
-        log Modules: ${MODULE_LIST}
-    fi
-    log
-    log Arguments:
-    log -stack-file: ${STACK_FILE}
-    log -stack-class: ${STACK_CLASS}
-    log -template: ${TEMPLATE_NAME}
-    log -install-dir: ${INSTALL_DIRECTORY}
-    log -region: ${REGION}
-    log
-}
-
 init() {
     downloadClasspath
     log
@@ -180,7 +240,7 @@ init() {
 import io.kloudformation.StackBuilder
 
 class ${STACK_CLASS}: StackBuilder {
-    override fun KloudFormation.create() {
+    override fun KloudFormation.create(args: List<String>) {
     }
 }" > "${STACK_FILE}"
         exit 0
@@ -326,6 +386,7 @@ downloadClasspath() {
 }
 
 transpile() {
+    log_arguments ${TRANSPILE_ARGS[@]}
     log
     log Transpiling ${STACK_FILE}
     log
@@ -334,13 +395,14 @@ transpile() {
     local JSON_YAML=yaml
     if [[ ! -z "$JSON" ]]; then JSON_YAML=json; fi
     "$KOTLIN" -classpath ${CLASSPATH} "$STACK_FILE" -include-runtime -d ${INSTALL_DIRECTORY}/stack.jar
-    "$JAVA" -classpath ${INSTALL_DIRECTORY}/stack.jar:${CLASSPATH} io.kloudformation.StackBuilderKt "$STACK_CLASS" "$TEMPLATE_NAME" "$JSON_YAML"
+    "$JAVA" -classpath ${INSTALL_DIRECTORY}/stack.jar:${CLASSPATH} io.kloudformation.StackBuilderKt "$STACK_CLASS" "$TEMPLATE_NAME" "$JSON_YAML" $@
     log
     log Template generated to ${TEMPLATE_NAME}
     log
 }
 
 invert() {
+    log_arguments ${INVERT_ARGS[@]}
     downloadClasspath
     log Inverting ${TEMPLATE_NAME}
     log
@@ -359,18 +421,32 @@ update() {
 }
 
 deploy() {
-    if [[ -z "${STACK_NAME}" ]]; then
-        error Argument -stack-name must be set to deploy to AWS
-    fi
-    transpile
+    log_arguments ${DEPLOY_ARGS[@]}
+    require_arguments ${DEPLOY_ARGS[@]}
+    downloadClasspath
     kloudformationRunnerJar
+    local EXTRA_ARGS=""
+    for MODULE in ${MODULES[@]}; do
+        MODULE_VERSION=( ${module/@/ } )
+        if [[ "${MODULE_VERSION[0]}" == "serverless" ]]; then
+            if [[ -z "${BUCKET}" ]]; then
+                error Arguments -bucket and -key must be set to deploy code to AWS
+            fi
+            if [[ -z "${KEY}" ]]; then
+                error Arguments -bucket and -key must be set to deploy code to AWS
+            fi
+            if [[ -z "${LOCATION}" ]]; then LOCATION=${PWD}; fi
+           "$JAVA" -jar ${INSTALL_DIRECTORY}/kloudformation-runner-${RUNNER_VERSION}-all.jar uploadZip -bucket "${BUCKET}" -key "${KEY}" -location "${LOCATION}" ${REGION_ARG[0]} "$REGION"
+           EXTRA_ARGS="${KEY}"
+        fi
+    done
+    transpile ${EXTRA_ARGS}
     "$JAVA" -jar ${INSTALL_DIRECTORY}/kloudformation-runner-${RUNNER_VERSION}-all.jar ${STACK_NAME_ARG[0]} "$STACK_NAME" ${TEMPLATE_NAME_ARG[0]} "$TEMPLATE_NAME" ${REGION_ARG[0]} "$REGION"
 }
 
 delete() {
-    if [[ -z "${STACK_NAME}" ]]; then
-        error Argument -stack-name must be set to delete
-    fi
+    log_arguments ${DELETE_ARGS[@]}
+    require_arguments ${DELETE_ARGS[@]}
     local FORCEFLAG=""
     if [[ ! -z "${FORCE}" ]]; then FORCEFLAG="--force ";fi
     downloadClasspath
@@ -379,13 +455,14 @@ delete() {
 }
 
 list() {
+    log_arguments ${LIST_ARGS[@]}
+    require_arguments ${LIST_ARGS[@]}
     downloadClasspath
     kloudformationRunnerJar
     "$JAVA" -jar ${INSTALL_DIRECTORY}/kloudformation-runner-${RUNNER_VERSION}-all.jar list ${REGION_ARG[0]} "$REGION"
 }
 
 idea() {
-
     if [[ ! `ls` ]]; then
     init
     fi
@@ -438,8 +515,27 @@ idea() {
         echo
     fi
 }
+
+upload() {
+    log_arguments ${UPLOAD_ARGS[@]}
+    require_arguments ${UPLOAD_ARGS[@]}
+    downloadClasspath
+    kloudformationRunnerJar
+    if [[ -z "${BUCKET}" ]]; then
+        error Argument -bucket must be set to upload
+    fi
+    if [[ -z "${KEY}" ]]; then
+        error Argument -key must be set to upload
+    fi
+    if [[ -z "${LOCATION}" ]]; then LOCATION="${PWD}"; fi
+    "$JAVA" -jar ${INSTALL_DIRECTORY}/kloudformation-runner-${RUNNER_VERSION}-all.jar uploadZip ${REGION_ARG[0]} "$REGION" -bucket ${BUCKET} -key ${KEY} -location "${LOCATION}"
+}
+
 log
 log "############### KloudFormation ${VERSION} ##################"
 log
-list_arguments
-${SELECTED_COMMAND}
+log Command: ${SELECTED_COMMAND}
+log
+list_arguments ${COMMON_ARGS[@]}
+
+${SELECTED_COMMAND} ${EXTRA_ARGS[@]}
