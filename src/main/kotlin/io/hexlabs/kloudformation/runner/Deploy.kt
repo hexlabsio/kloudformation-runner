@@ -44,7 +44,7 @@ fun main(args: Array<String>) {
             val key = options.find { it.name == "-key" }?.value ?: throw IllegalArgumentException("Expected -key argument")
             val directory = options.find { it.name == "-location" }?.value ?: throw IllegalArgumentException("Expected -location argument")
             val s3Syncer = S3Syncer(Region.of(region))
-            s3Syncer.uploadCodeDirectory(File(directory), bucket, key)
+            s3Syncer.uploadCodeDirectory(directory, bucket, key)
         }
         "deploy" -> {
             val stackName = options.find { it.name == "-stack-name" }?.value ?: throw IllegalArgumentException("Expected -stack-name argument")

@@ -9,7 +9,7 @@ const val certificateVariable = "InstallKloudFormationCertificate"
 const val domain = "install.kloudformation.hexlabs.io"
 
 class CertInUsEast1 : StackBuilder {
-    override fun KloudFormation.create() {
+    override fun KloudFormation.create(args: List<String>) {
         val certificate = certificate(+"www.$domain") {
             subjectAlternativeNames(listOf(+domain))
             domainValidationOptions(listOf(DomainValidationOption(
@@ -25,7 +25,7 @@ class CertInUsEast1 : StackBuilder {
 }
 
 class Site : StackBuilder {
-    override fun KloudFormation.create() {
+    override fun KloudFormation.create(args: List<String>) {
         s3Website {
             s3Bucket {
                 bucketName("install-kloudformation")
