@@ -319,7 +319,6 @@ moduleDownload() {
         log Downloading ${NAME} ${VERSION} from ${URL}
         if [[ `curl -sSL -D - ${URL} -o /dev/null | grep 200` ]]; then
             curl -sSL ${URL} -o ${FILE_NAME}
-            MODULES+=( "${FILE_NAME}" )
         else
            error Could not download ${NAME} from ${URL}
         fi
