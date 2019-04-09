@@ -22,7 +22,7 @@ class S3Syncer(val region: Region, val client: S3Client = S3Client.builder().reg
 
 fun zipAll(directory: String): ByteArray {
     val sourceFile = File(directory)
-    if(sourceFile.exists()) {
+    if (sourceFile.exists()) {
         return if (sourceFile.isFile) sourceFile.readBytes()
         else ByteArrayOutputStream().use { ZipOutputStream(it).use { zipFiles(it, sourceFile, "") }; it.toByteArray() }
     } else throw IllegalArgumentException("Could not find file or directory at $directory")
