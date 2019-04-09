@@ -1,0 +1,19 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Certificate:
+    Type: "AWS::CertificateManager::Certificate"
+    Properties:
+      DomainName: "www.install.kloudformation.hexlabs.io"
+      DomainValidationOptions:
+      - DomainName: "install.kloudformation.hexlabs.io"
+        ValidationDomain: "install.kloudformation.hexlabs.io"
+      SubjectAlternativeNames:
+      - "install.kloudformation.hexlabs.io"
+      ValidationMethod: "DNS"
+Outputs:
+  InstallKloudFormationCertificate:
+    Value:
+      Ref: "Certificate"
+    Export:
+      Name: "InstallKloudFormationCertificate"
