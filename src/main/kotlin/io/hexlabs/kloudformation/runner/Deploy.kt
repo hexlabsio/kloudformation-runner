@@ -3,6 +3,10 @@ package io.hexlabs.kloudformation.runner
 import software.amazon.awssdk.regions.Region
 import java.io.File
 import java.lang.IllegalArgumentException
+import java.time.Clock
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.UUID
 
 sealed class Option {
     data class MonoOption(val name: String) : Option()
@@ -37,12 +41,18 @@ fun main(args: Array<String>) {
     val command = commands.firstOrNull()?.name ?: "deploy"
     val region = options.find { it.name == "-region" }?.value ?: throw IllegalArgumentException("Expected -region argument")
     val stackBuilder = StackBuilder(Region.of(region))
+    fun generateKey(location: String): String {
+        val current = LocalDateTime.now(Clock.systemUTC())
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH:mm:ss.SSS")
+        val formatted = current.format(formatter)
+        return UUID.randomUUID().toString() + "-" + formatted + "/" + location
+    }
     when (command) {
         "list" -> stackBuilder.listStacks()
         "uploadZip" -> {
             val bucket = options.find { it.name == "-bucket" }?.value ?: throw IllegalArgumentException("Expected -bucket argument")
-            val key = options.find { it.name == "-key" }?.value ?: throw IllegalArgumentException("Expected -key argument")
             val directory = options.find { it.name == "-location" }?.value ?: throw IllegalArgumentException("Expected -location argument")
+            val key = options.find { it.name == "-key" }?.value ?: generateKey(directory.substringAfterLast("/"))
             val s3Syncer = S3Syncer(Region.of(region))
             s3Syncer.uploadCodeDirectory(directory, bucket, key)
         }

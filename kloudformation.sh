@@ -2,7 +2,7 @@
 
 KOTLIN_VERSION="1.3.21"
 KOTLIN_LIBRARIES=("stdlib" "stdlib-common" "stdlib-jdk8" "reflect")
-RUNNER_VERSION="0.1.49"
+RUNNER_VERSION="0.1.XXXXX"
 DEFAULT_VERSION="0.1.119"
 VERSION=${DEFAULT_VERSION}
 INSTALL_DIRECTORY=~/.kloudformation
@@ -46,11 +46,12 @@ TRANSPILE_ARGS=("STACK_FILE_ARG" "STACK_CLASS_ARG" "TEMPLATE_NAME_ARG" "REGION_A
 INVERT_ARGS=("STACK_FILE_ARG" "TEMPLATE_NAME_ARG")
 COMMON_ARGS=("QUITE_ARG" "MODULE_ARG" "VERSION_ARG" "INSTALL_DIRECTORY_ARG" "EXTRAS_ARG_ARG")
 SHORT_ARGS=("Q_ARG" "M_ARG" "V_ARG" "R_ARG" "F_ARG" "A_ARG")
-UPLOAD_ARGS=("LOCATION_ARG" "KEY_ARG" "BUCKET_ARG" "REGION_ARG")
+UPLOAD_ARGS=("BUCKET_ARG")
+UPLOAD_NOT_REQUIRED_ARGS=("KEY_ARG" "LOCATION_ARG" "REGION_ARG")
 DEPLOY_ARGS=("STACK_NAME_ARG" "REGION_ARG")
 LIST_ARGS=("REGION_ARG")
 DELETE_ARGS=("STACK_NAME_ARG" "REGION_ARG" "FORCE_ARG")
-ARGUMENTS=(${COMMON_ARGS[@]} ${TRANSPILE_ARGS[@]} ${SHORT_ARGS[@]} ${UPLOAD_ARGS[@]} ${DEPLOY_ARGS[@]} ${LIST_ARGS[@]} ${DELETE_ARGS[@]} ${INVERT_ARGS[@]})
+ARGUMENTS=(${COMMON_ARGS[@]} ${TRANSPILE_ARGS[@]} ${SHORT_ARGS[@]} ${UPLOAD_ARGS[@]} ${UPLOAD_NOT_REQUIRED_ARGS[@]} ${DEPLOY_ARGS[@]} ${LIST_ARGS[@]} ${DELETE_ARGS[@]} ${INVERT_ARGS[@]})
 COMMANDS=("help" "transpile" "init" "version" "update"  "deploy" "invert" "idea" "delete" "list" "upload")
 
 EXTRA_ARGS=()
@@ -516,18 +517,14 @@ idea() {
 }
 
 upload() {
-    log_arguments ${UPLOAD_ARGS[@]}
+    log_arguments ${UPLOAD_ARGS[@]} ${UPLOAD_NOT_REQUIRED_ARGS[@]}
     require_arguments ${UPLOAD_ARGS[@]}
     downloadClasspath
     kloudformationRunnerJar
-    if [[ -z "${BUCKET}" ]]; then
-        error Argument -bucket must be set to upload
-    fi
-    if [[ -z "${KEY}" ]]; then
-        error Argument -key must be set to upload
-    fi
     if [[ -z "${LOCATION}" ]]; then LOCATION="${PWD}"; fi
-    "$JAVA" -jar ${INSTALL_DIRECTORY}/kloudformation-runner-${RUNNER_VERSION}-all.jar uploadZip ${REGION_ARG[0]} "$REGION" -bucket ${BUCKET} -key ${KEY} -location "${LOCATION}"
+    if [[ -z "${KEY}" ]]; then "$JAVA" -jar ${INSTALL_DIRECTORY}/kloudformation-runner-${RUNNER_VERSION}-all.jar uploadZip ${REGION_ARG[0]} "$REGION" -bucket ${BUCKET} -location "${LOCATION}"
+    else "$JAVA" -jar ${INSTALL_DIRECTORY}/kloudformation-runner-${RUNNER_VERSION}-all.jar uploadZip ${REGION_ARG[0]} "$REGION" -bucket ${BUCKET} -key ${KEY} -location "${LOCATION}"
+    fi
 }
 
 log
