@@ -42,13 +42,14 @@ FORCE_ARG=("-force" "toggle" "FORCE")
 F_ARG=("-f" "toggle" "FORCE")
 JSON_ARG=("-json" "toggle" "JSON")
 
-TRANSPILE_ARGS=("STACK_FILE_ARG" "STACK_CLASS_ARG" "TEMPLATE_NAME_ARG" "REGION_ARG" "JSON_ARG")
+TRANSPILE_ARGS=("STACK_FILE_ARG" "STACK_CLASS_ARG" "TEMPLATE_NAME_ARG" "JSON_ARG")
 INVERT_ARGS=("STACK_FILE_ARG" "TEMPLATE_NAME_ARG")
-COMMON_ARGS=("QUITE_ARG" "MODULE_ARG" "VERSION_ARG" "INSTALL_DIRECTORY_ARG" "EXTRAS_ARG_ARG")
+COMMON_ARGS=("QUITE_ARG" "MODULE_ARG" "VERSION_ARG" "INSTALL_DIRECTORY_ARG" "REGION_ARG" "EXTRAS_ARG_ARG")
 SHORT_ARGS=("Q_ARG" "M_ARG" "V_ARG" "R_ARG" "F_ARG" "A_ARG")
 UPLOAD_ARGS=("BUCKET_ARG")
-UPLOAD_NOT_REQUIRED_ARGS=("KEY_ARG" "LOCATION_ARG" "REGION_ARG")
-DEPLOY_ARGS=("STACK_NAME_ARG" "REGION_ARG")
+UPLOAD_NOT_REQUIRED_ARGS=("KEY_ARG" "LOCATION_ARG")
+DEPLOY_ARGS=("STACK_NAME_ARG" ${TRANSPILE_ARGS[@]})
+DEPLOY_NOT_REQUIRED_ARGS=(${UPLOAD_ARGS[@]})
 LIST_ARGS=("REGION_ARG")
 DELETE_ARGS=("STACK_NAME_ARG" "REGION_ARG" "FORCE_ARG")
 ARGUMENTS=(${COMMON_ARGS[@]} ${TRANSPILE_ARGS[@]} ${SHORT_ARGS[@]} ${UPLOAD_ARGS[@]} ${UPLOAD_NOT_REQUIRED_ARGS[@]} ${DEPLOY_ARGS[@]} ${LIST_ARGS[@]} ${DELETE_ARGS[@]} ${INVERT_ARGS[@]})
@@ -207,6 +208,7 @@ help () {
     echo "
 OPTIONS (Replace names in angle braces << Name >>)
    -quite, -q                         Makes logging less verbose (Default off)
+   -arg, -a                           Add extra arg to pass to Stack
    -force, -f                         Used to force Deletes without prompt
    -stack-file <<File Name>>          Name of Kotlin file containing your stack code (Default = stack/Stack.kt)
    -stack-name <<Stack Name>>         Name of CloudFormation stack used for deploying (Not set by Default)
@@ -421,26 +423,19 @@ update() {
 }
 
 deploy() {
-    log_arguments ${DEPLOY_ARGS[@]}
+    log_arguments ${DEPLOY_ARGS[@]} ${DEPLOY_NOT_REQUIRED_ARGS[@]}
     require_arguments ${DEPLOY_ARGS[@]}
     downloadClasspath
     kloudformationRunnerJar
-    local EXTRA_ARGS=""
+    QUITE=true
     for MODULE in ${MODULES[@]}; do
         MODULE_VERSION=( ${module/@/ } )
         if [[ "${MODULE_VERSION[0]}" == "serverless" ]]; then
-            if [[ -z "${BUCKET}" ]]; then
-                error Arguments -bucket and -key must be set to deploy code to AWS
-            fi
-            if [[ -z "${KEY}" ]]; then
-                error Arguments -bucket and -key must be set to deploy code to AWS
-            fi
-            if [[ -z "${LOCATION}" ]]; then LOCATION=${PWD}; fi
-           "$JAVA" -jar ${INSTALL_DIRECTORY}/kloudformation-runner-${RUNNER_VERSION}-all.jar uploadZip -bucket "${BUCKET}" -key "${KEY}" -location "${LOCATION}" ${REGION_ARG[0]} "$REGION"
-           EXTRA_ARGS="${KEY}"
+            upload
+            break
         fi
     done
-    transpile ${EXTRA_ARGS}
+    transpile ${KEY} $@
     "$JAVA" -jar ${INSTALL_DIRECTORY}/kloudformation-runner-${RUNNER_VERSION}-all.jar ${STACK_NAME_ARG[0]} "$STACK_NAME" ${TEMPLATE_NAME_ARG[0]} "$TEMPLATE_NAME" ${REGION_ARG[0]} "$REGION"
 }
 
@@ -522,9 +517,12 @@ upload() {
     downloadClasspath
     kloudformationRunnerJar
     if [[ -z "${LOCATION}" ]]; then LOCATION="${PWD}"; fi
-    if [[ -z "${KEY}" ]]; then "$JAVA" -jar ${INSTALL_DIRECTORY}/kloudformation-runner-${RUNNER_VERSION}-all.jar uploadZip ${REGION_ARG[0]} "$REGION" -bucket ${BUCKET} -location "${LOCATION}"
-    else "$JAVA" -jar ${INSTALL_DIRECTORY}/kloudformation-runner-${RUNNER_VERSION}-all.jar uploadZip ${REGION_ARG[0]} "$REGION" -bucket ${BUCKET} -key ${KEY} -location "${LOCATION}"
+    if [[ -z "${KEY}" ]]; then
+        if [[ ! -f ${LOCATION} ]]; then KEYEND=.zip; fi
+        if [[ ! -z ${STACK_NAME} ]]; then KEYPRE=${STACK_NAME}/; fi
+        KEY=$KEYPRE$RANDOM$RANDOM$RANDOM-`date '+%Y-%m-%d-%H:%M:%S'`/${LOCATION##*/}${KEYEND};
     fi
+    "$JAVA" -jar ${INSTALL_DIRECTORY}/kloudformation-runner-${RUNNER_VERSION}-all.jar uploadZip ${REGION_ARG[0]} "$REGION" -bucket ${BUCKET} -key ${KEY} -location "${LOCATION}"
 }
 
 log

@@ -45,7 +45,8 @@ fun main(args: Array<String>) {
         val current = LocalDateTime.now(Clock.systemUTC())
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH:mm:ss.SSS")
         val formatted = current.format(formatter)
-        return UUID.randomUUID().toString() + "-" + formatted + "/" + location
+        val file = File(location)
+        return UUID.randomUUID().toString() + "-" + formatted + "/" + if (file.isFile) file.name else file.name + ".zip"
     }
     when (command) {
         "list" -> stackBuilder.listStacks()
