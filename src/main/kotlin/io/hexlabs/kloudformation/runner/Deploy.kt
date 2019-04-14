@@ -8,12 +8,22 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 
-sealed class Option {
-    data class MonoOption(val name: String) : Option()
-    data class BinaryOption(val name: String, val value: String) : Option()
-    data class WaitingOption(val name: String) : Option()
+sealed class Option(open val name: String) {
+    data class MonoOption(override val name: String) : Option(name)
+    data class BinaryOption(override val name: String, val value: String) : Option(name)
+    data class WaitingOption(override val name: String) : Option(name)
+    fun equals(name: String) = this.name == name
 }
+operator fun <T : Option> List<T>.get(message: String, compare: T.() -> Boolean) = find {
+    compare(it)
+} ?: throw IllegalArgumentException(message)
+operator fun <T : Option> List<T>.get(name: String) = this["Expected $name argument", { equals(name) } ]
+fun <T : Option> List<T>.has(name: String) = notRequired(name) != null
+fun <T : Option> List<T>.notRequired(name: String, compare: T.() -> Boolean = { equals(name) }) = find { compare(it) }
+
 data class Options(val options: List<Option> = emptyList()) {
+    val binaryOptions = options.filter { it is Option.BinaryOption }.map { it as Option.BinaryOption }
+    val monoOptions = options.filter { it is Option.MonoOption }.map { it as Option.MonoOption }
     companion object {
         fun isBinary(arg: String) = arg.startsWith("-") && !arg.startsWith("--")
         fun from(args: List<String>): Options {
@@ -34,44 +44,56 @@ data class Options(val options: List<Option> = emptyList()) {
     }
 }
 
+fun generateKey(location: String): String {
+    val current = LocalDateTime.now(Clock.systemUTC())
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH:mm:ss.SSS")
+    val formatted = current.format(formatter)
+    val file = File(location)
+    return UUID.randomUUID().toString() + "-" + formatted + "/" + if (file.isFile) file.name else file.name + ".zip"
+}
+
 fun main(args: Array<String>) {
-    val allOptions = Options.from(args.toList()).options
-    val options = allOptions.filter { it is Option.BinaryOption }.map { it as Option.BinaryOption }
-    val commands = allOptions.filter { it is Option.MonoOption }.map { it as Option.MonoOption }
-    val command = commands.firstOrNull()?.name ?: "deploy"
-    val region = options.find { it.name == "-region" }?.value ?: throw IllegalArgumentException("Expected -region argument")
+    val options = Options.from(args.toList())
+    val command = options.monoOptions.firstOrNull()?.name ?: "deploy"
+    val region = options.binaryOptions["-region"].value
+    val outputFile = options.binaryOptions.notRequired("-output")?.let { File(it.value).also { it.parentFile?.mkdirs() } }
     val stackBuilder = StackBuilder(Region.of(region))
-    fun generateKey(location: String): String {
-        val current = LocalDateTime.now(Clock.systemUTC())
-        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH:mm:ss.SSS")
-        val formatted = current.format(formatter)
-        val file = File(location)
-        return UUID.randomUUID().toString() + "-" + formatted + "/" + if (file.isFile) file.name else file.name + ".zip"
-    }
     when (command) {
         "list" -> stackBuilder.listStacks()
         "uploadZip" -> {
-            val bucket = options.find { it.name == "-bucket" }?.value ?: throw IllegalArgumentException("Expected -bucket argument")
-            val directory = options.find { it.name == "-location" }?.value ?: throw IllegalArgumentException("Expected -location argument")
-            val key = options.find { it.name == "-key" }?.value ?: generateKey(directory.substringAfterLast("/"))
+            val bucket = options.binaryOptions["-bucket"].value
+            val directory = options.binaryOptions["-location"].value
+            val key = options.binaryOptions.notRequired("-key")?.value ?: generateKey(directory.substringAfterLast("/"))
             val s3Syncer = S3Syncer(Region.of(region))
             s3Syncer.uploadCodeDirectory(directory, bucket, key)
         }
+        "invoke" -> {
+            val namePattern = Regex("(arn:(aws[a-zA-Z-]*)?:lambda:)?([a-z]{2}(-gov)?-[a-z]+-\\d{1}:)?(\\d{12}:)?(function:)?([a-zA-Z0-9-_\\.]+)(:(\\\$LATEST|[a-zA-Z0-9-_]+))?")
+            val functionName = options.binaryOptions["-function-name must match ${namePattern.pattern}", { name == "-function-name" && value.matches(namePattern) } ].value
+            val invocationType = options.binaryOptions.notRequired("-type")?.value ?: "RequestResponse"
+            val logType = if (options.monoOptions.has("--disable-logs")) "None" else "Tail"
+            val qualifierPatter = Regex("(|[a-zA-Z0-9\\$\\_-]+)")
+            val qualifier = options.binaryOptions.notRequired("-qualifier must match ${qualifierPatter.pattern}") { name == "-qualifier" && value.matches(qualifierPatter) }?.value
+            val clientContext = options.binaryOptions.notRequired("-context")?.value
+            val payload = options.binaryOptions.notRequired("-payload")?.value
+            LambdaInvoker(Region.of(region)).invokeLambda(functionName, invocationType, logType, payload, qualifier, clientContext)
+        }
         "deploy" -> {
-            val stackName = options.find { it.name == "-stack-name" }?.value ?: throw IllegalArgumentException("Expected -stack-name argument")
-            val templateFile = File(
-                options.find { it.name == "-template" }?.value
-                    ?: throw IllegalArgumentException("Expected -template argument")
-            )
+            val stackName = options.binaryOptions["-stack-name"].value
+            val templateFile = File(options.binaryOptions["-template"].value)
             if (!templateFile.exists()) throw IllegalArgumentException("Could not find file $templateFile")
-            else stackBuilder.createOrUpdate(stackName, templateFile.readText())
+            else {
+                stackBuilder.createOrUpdate(stackName, templateFile.readText())?.let {
+                    outputFile?.writeText(it.outputs.toList().joinToString(separator = "\n") { (key, value) -> "$key=$value" })
+                }
+            }
         }
         "delete" -> {
-            val stackNames = options.find { it.name.startsWith("-stack-name") }?.value ?: throw IllegalArgumentException("Expected -stack-name or -stack-names argument")
-            val force = commands.find { it.name == "--force" }
+            val stackNames = options.binaryOptions["Expected -stack-name or -stack-names argument", { name.startsWith("-stack-name") } ].value
+            val force = options.monoOptions.has("--force")
             stackNames.split(",").forEach { stackName ->
                 if (stackBuilder.stackWith(stackName) != null) {
-                    if (force == null) {
+                    if (!force) {
                         System.out.println("Are you sure you want to delete the stack named $stackName in the $region region? (y/n)")
                         val answer = readLine()
                         if (answer == "y") {
@@ -87,5 +109,7 @@ fun main(args: Array<String>) {
             }
         }
         else -> System.err.println("Command $command not recognised try deploy or delete")
+    }
+    outputFile?.let {
     }
 }

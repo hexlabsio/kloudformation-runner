@@ -90,10 +90,6 @@ class StackBuilder(val region: Region, val client: CloudFormationClient = CloudF
                 println()
                 println("Stack Delete Complete")
                 println()
-                result.stack?.outputs().orEmpty().forEach {
-                    println("${it.outputKey()}: ${it.outputValue()}")
-                }
-                println()
             } else {
                 System.err.println()
                 System.err.println("Stack Delete Failure")
@@ -105,7 +101,7 @@ class StackBuilder(val region: Region, val client: CloudFormationClient = CloudF
         }
     }
 
-    fun createOrUpdate(stackName: String, template: String) {
+    fun createOrUpdate(stackName: String, template: String): OutputInfo? {
         println()
         println("#################### Stack Deploy #######################")
         println()
@@ -116,8 +112,12 @@ class StackBuilder(val region: Region, val client: CloudFormationClient = CloudF
             if (result.success) {
                 println()
                 println("Stack Update Complete")
-
                 println()
+                result.stack?.outputs().orEmpty().forEach {
+                    println("${it.outputKey()}: ${it.outputValue()}")
+                }
+                println()
+                return OutputInfo(result.stack?.outputs().orEmpty().map { it.outputKey() to it.outputValue() }.toMap())
             } else {
                 System.err.println()
                 System.err.println("Stack Update Failure")
@@ -125,6 +125,7 @@ class StackBuilder(val region: Region, val client: CloudFormationClient = CloudF
                 System.exit(1)
             }
         } catch (error: CloudFormationException) { handle(error) }
+        return null
     }
 
     data class Result(val stack: Stack?, val success: Boolean)

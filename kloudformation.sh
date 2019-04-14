@@ -30,6 +30,12 @@ TEMPLATE_NAME_ARG=("-template" "arg" "TEMPLATE_NAME" "Name of the output templat
 INSTALL_DIRECTORY_ARG=("-install-dir" "arg" "INSTALL_DIRECTORY" "Directory to install kloudformation to (Default = ~/.kloudformation)")
 REGION_ARG=("-region" "arg" "REGION" "An AWS region")
 R_ARG=("-r" "arg" "REGION")
+FUNCTION_NAME_ARG=("-function-name" "arg" "FUNCTION_NAME")
+INVOCATION_TYPE_ARG=("-invocation-type" "arg" "INVOCATION_TYPE")
+QUALIFIER_ARG=("-qualifier" "arg" "QUALIFIER")
+CONTEXT_ARG=("-context" "arg" "CONTEXT")
+PAYLOAD_ARG=("-payload" "arg" "PAYLOAD")
+OUTPUT_ARG=("-output" "arg" "OUTPUT")
 
 MODULE_ARG=("-module" "array" "MODULES" "Includes a KloudFormation Module Named kloudformation-<<Module>>-module")
 EXTRAS_ARG_ARG=("-arg" "array" "EXTRA_ARGS")
@@ -49,11 +55,13 @@ SHORT_ARGS=("Q_ARG" "M_ARG" "V_ARG" "R_ARG" "F_ARG" "A_ARG")
 UPLOAD_ARGS=("BUCKET_ARG")
 UPLOAD_NOT_REQUIRED_ARGS=("KEY_ARG" "LOCATION_ARG")
 DEPLOY_ARGS=("STACK_NAME_ARG" ${TRANSPILE_ARGS[@]})
-DEPLOY_NOT_REQUIRED_ARGS=(${UPLOAD_ARGS[@]})
+DEPLOY_NOT_REQUIRED_ARGS=(${UPLOAD_ARGS[@]} "OUTPUT_ARG")
 LIST_ARGS=("REGION_ARG")
-DELETE_ARGS=("STACK_NAME_ARG" "REGION_ARG" "FORCE_ARG")
-ARGUMENTS=(${COMMON_ARGS[@]} ${TRANSPILE_ARGS[@]} ${SHORT_ARGS[@]} ${UPLOAD_ARGS[@]} ${UPLOAD_NOT_REQUIRED_ARGS[@]} ${DEPLOY_ARGS[@]} ${LIST_ARGS[@]} ${DELETE_ARGS[@]} ${INVERT_ARGS[@]})
-COMMANDS=("help" "transpile" "init" "version" "update"  "deploy" "invert" "idea" "delete" "list" "upload")
+DELETE_ARGS=("STACK_NAME_ARG" "FORCE_ARG")
+INVOKE_ARGS=("FUNCTION_NAME_ARG")
+INVOKE_NOT_REQUIRED_ARGS=("INVOCATION_TYPE_ARG" "QUALIFIER_ARG" "CONTEXT_ARG" "PAYLOAD_ARG")
+ARGUMENTS=(${COMMON_ARGS[@]} ${TRANSPILE_ARGS[@]} ${SHORT_ARGS[@]} ${UPLOAD_ARGS[@]} ${UPLOAD_NOT_REQUIRED_ARGS[@]} ${DEPLOY_ARGS[@]} ${DEPLOY_NOT_REQUIRED_ARGS[@]} ${LIST_ARGS[@]} ${DELETE_ARGS[@]} ${INVERT_ARGS[@]} ${INVOKE_ARGS[@]} ${INVOKE_NOT_REQUIRED_ARGS[@]})
+COMMANDS=("help" "transpile" "init" "version" "update"  "deploy" "invert" "idea" "delete" "list" "upload" "invoke")
 
 EXTRA_ARGS=()
 
@@ -436,7 +444,8 @@ deploy() {
         fi
     done
     transpile ${KEY} $@
-    "$JAVA" -jar ${INSTALL_DIRECTORY}/kloudformation-runner-${RUNNER_VERSION}-all.jar ${STACK_NAME_ARG[0]} "$STACK_NAME" ${TEMPLATE_NAME_ARG[0]} "$TEMPLATE_NAME" ${REGION_ARG[0]} "$REGION"
+    if [[ ! -z "${OUTPUT}" ]]; then OUTPUT_COMMAND=" -output ${OUTPUT}"; fi
+    "$JAVA" -jar ${INSTALL_DIRECTORY}/kloudformation-runner-${RUNNER_VERSION}-all.jar ${STACK_NAME_ARG[0]} "$STACK_NAME" ${TEMPLATE_NAME_ARG[0]} "$TEMPLATE_NAME" ${REGION_ARG[0]} "$REGION"${OUTPUT_COMMAND}
 }
 
 delete() {
@@ -523,6 +532,23 @@ upload() {
         KEY=$KEYPRE$RANDOM$RANDOM$RANDOM-`date '+%Y-%m-%d-%H:%M:%S'`/${LOCATION##*/}${KEYEND};
     fi
     "$JAVA" -jar ${INSTALL_DIRECTORY}/kloudformation-runner-${RUNNER_VERSION}-all.jar uploadZip ${REGION_ARG[0]} "$REGION" -bucket ${BUCKET} -key ${KEY} -location "${LOCATION}"
+}
+
+invoke() {
+    log_arguments ${INVOKE_ARGS[@]} ${INVOKE_NOT_REQUIRED_ARGS[@]}
+    require_arguments ${INVOKE_ARGS[@]}
+    downloadClasspath
+    kloudformationRunnerJar
+    local COMMAND_STRING="-function-name ${FUNCTION_NAME}"
+    if [[ ! -z "${INVOCATION_TYPE}" ]]; then COMMAND_STRING=${COMMAND_STRING}" -invocation-type ${INVOCATION_TYPE}"; fi
+    if [[ ! -z "${QUALIFIER}" ]]; then COMMAND_STRING=${COMMAND_STRING}" -qualifier ${QUALIFIER}"; fi
+    if [[ ! -z "${CONTEXT}" ]]; then COMMAND_STRING=${COMMAND_STRING}" -context ${CONTEXT}"; fi
+    if [[ ! -z "${PAYLOAD}" ]]; then COMMAND_STRING=${COMMAND_STRING}" -payload ${PAYLOAD}"; fi
+    if [[ ! -z "${QUITE}" ]]; then COMMAND_STRING=${COMMAND_STRING}" --disable-logs"; fi
+    log
+    log "Invoking Lambda [ ${FUNCTION_NAME} ]"
+    log
+    "$JAVA" -jar ${INSTALL_DIRECTORY}/kloudformation-runner-${RUNNER_VERSION}-all.jar invoke ${REGION_ARG[0]} "$REGION" ${COMMAND_STRING}
 }
 
 log
