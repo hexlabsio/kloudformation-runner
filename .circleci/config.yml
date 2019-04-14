@@ -30,7 +30,7 @@ jobs:
 
     - run:
         name: Update NPM package version
-        command: npm version 0.1.${CIRCLE_BUILD_NUM}
+        command: npm --no-git-tag-version version 0.1.${CIRCLE_BUILD_NUM}
 
     - run:
         name: Publish NPM package
