@@ -29,7 +29,7 @@ jobs:
         command: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > .npmrc
 
     - run:
-        name: Update NPM package version\
+        name: Update NPM package version
         command: npm --no-git-tag-version version -f 0.1.${CIRCLE_BUILD_NUM}
 
     - run:
