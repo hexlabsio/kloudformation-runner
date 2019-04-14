@@ -24,6 +24,18 @@ jobs:
         - ~/.gradle
         key: gradle-{{ checksum "build.gradle.kts" }}
 
+    - run:
+        name: Authenticate with NPM registry
+        command: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > .npmrc
+
+    - run:
+        name: Update NPM package version
+        command: npm --no-git-tag-version version -f 0.1.${CIRCLE_BUILD_NUM}
+
+    - run:
+        name: Publish NPM package
+        command: npm publish --access public
+
     - restore_cache:
         keys:
         - kloudformation-{{ checksum "kloudformation.sh" }}
