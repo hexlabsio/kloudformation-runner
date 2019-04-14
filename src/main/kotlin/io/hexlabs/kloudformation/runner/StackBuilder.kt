@@ -67,8 +67,14 @@ class StackBuilder(val region: Region, val client: CloudFormationClient = CloudF
                 println()
                 println("Update Complete (No Change)")
                 println()
-            } else System.err.println(error.message)
-        } else System.err.println(error.message)
+            } else {
+                System.err.println(error.message)
+                System.exit(1)
+            }
+        } else {
+            System.err.println(error.message)
+            System.exit(1)
+        }
     }
     fun listStacks() {
         println()
