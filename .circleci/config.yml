@@ -64,3 +64,15 @@ jobs:
     - run:
         name: Sync Files with S3
         command: aws s3 sync ./s3 s3://install-kloudformation/
+
+    - run:
+        name: Authenticate with NPM registry
+        command: echo "//registry.npmjs.org/:_authToken=$npm_TOKEN" > ~/kloudformation-runner/.npmrc
+
+    - run:
+        name: Update NPM package version
+        command: npm version 0.1.${CIRCLE_BUILD_NUM}
+
+    - run:
+        name: Publish NPM package
+        command: npm publish

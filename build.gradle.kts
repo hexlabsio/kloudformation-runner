@@ -13,6 +13,7 @@ plugins {
     id("com.star-zero.gradle.githook") version "1.1.0"
     id("com.jfrog.bintray") version "1.8.4"
     id("com.github.johnrengelman.shadow") version "4.0.4"
+    id("com.moowork.node") version "1.3.1"
     `maven-publish`
 }
 
@@ -88,15 +89,6 @@ configure<KtlintExtension> {
 }
 
 
-configure<GithookExtension> {
-    githook {
-        hooks {
-            create("pre-commit") {
-                task = "build"
-            }
-        }
-    }
-}
 
 artifacts {
     add("archives", shadowJar)
