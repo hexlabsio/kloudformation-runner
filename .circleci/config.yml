@@ -26,15 +26,15 @@ jobs:
 
     - run:
         name: Authenticate with NPM registry
-        command: echo "//registry.npmjs.org/:_authToken=$npm_TOKEN" > ~/.npmrc
+        command: echo "//registry.npmjs.org/:_authToken=$npm_TOKEN" > .npmrc
 
     - run:
-        name: Update NPM package version
-        command: npm --no-git-tag-version version 0.1.${CIRCLE_BUILD_NUM}
+        name: Update NPM package version\
+        command: npm --no-git-tag-version version -f 0.1.${CIRCLE_BUILD_NUM}
 
     - run:
         name: Publish NPM package
-        command: npm publish
+        command: npm publish --access public
 
     - restore_cache:
         keys:
