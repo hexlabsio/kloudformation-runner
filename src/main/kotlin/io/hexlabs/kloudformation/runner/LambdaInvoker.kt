@@ -7,7 +7,7 @@ import software.amazon.awssdk.services.lambda.model.InvokeRequest
 import java.io.File
 import java.util.Base64
 
-class LambdaInvoker(val region: Region, val client: LambdaClient = LambdaClient.builder().region(region).build()) {
+class LambdaInvoker(val region: String, val client: LambdaClient = LambdaClient.builder().region(Region.of(region)).build()) {
 
     private fun encoded(value: String) = Base64.getEncoder().encode(textFrom(value).toByteArray())
     private fun textFrom(value: String) = if (value.startsWith("file://")) File(value.substringAfter("file://")).readText() else value

@@ -13,7 +13,7 @@ import software.amazon.awssdk.services.cloudformation.model.StackResource
 import software.amazon.awssdk.services.cloudformation.model.StackStatus
 import software.amazon.awssdk.services.cloudformation.model.UpdateStackRequest
 
-class StackBuilder(val region: Region, val client: CloudFormationClient = CloudFormationClient.builder().region(region).build()) {
+class StackBuilder(val region: String, val client: CloudFormationClient = CloudFormationClient.builder().region(Region.of(region)).build()) {
 
     private fun stackExistsWith(name: String): Boolean = stackWith(name) != null
     fun stackWith(name: String): Stack? = try {

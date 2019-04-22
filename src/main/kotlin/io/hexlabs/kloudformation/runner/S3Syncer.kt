@@ -13,7 +13,7 @@ import java.io.FileInputStream
 import java.lang.IllegalArgumentException
 import java.util.zip.ZipOutputStream
 
-class S3Syncer(val region: Region, val client: S3Client = S3Client.builder().region(region).build()) {
+class S3Syncer(val region: String, val client: S3Client = S3Client.builder().region(Region.of(region)).build()) {
     fun uploadCodeDirectory(directory: String, bucket: String, key: String) {
         val zipBytes = zipAll(directory)
         println("Uploading to $bucket/$key")

@@ -1,6 +1,5 @@
 package io.hexlabs.kloudformation.runner
 
-import software.amazon.awssdk.regions.Region
 import java.io.File
 import java.lang.IllegalArgumentException
 import java.time.Clock
@@ -57,14 +56,14 @@ fun main(args: Array<String>) {
     val command = options.monoOptions.firstOrNull()?.name ?: "deploy"
     val region = options.binaryOptions["-region"].value
     val outputFile = options.binaryOptions.notRequired("-output")?.let { File(it.value).also { it.parentFile?.mkdirs() } }
-    val stackBuilder = StackBuilder(Region.of(region))
+    val stackBuilder = StackBuilder(region)
     when (command) {
         "list" -> stackBuilder.listStacks()
         "uploadZip" -> {
             val bucket = options.binaryOptions["-bucket"].value
             val directory = options.binaryOptions["-location"].value
             val key = options.binaryOptions.notRequired("-key")?.value ?: generateKey(directory.substringAfterLast("/"))
-            val s3Syncer = S3Syncer(Region.of(region))
+            val s3Syncer = S3Syncer(region)
             s3Syncer.uploadCodeDirectory(directory, bucket, key)
         }
         "invoke" -> {
@@ -76,7 +75,7 @@ fun main(args: Array<String>) {
             val qualifier = options.binaryOptions.notRequired("-qualifier must match ${qualifierPatter.pattern}") { name == "-qualifier" && value.matches(qualifierPatter) }?.value
             val clientContext = options.binaryOptions.notRequired("-context")?.value
             val payload = options.binaryOptions.notRequired("-payload")?.value
-            LambdaInvoker(Region.of(region)).invokeLambda(functionName, invocationType, logType, payload, qualifier, clientContext)
+            LambdaInvoker(region).invokeLambda(functionName, invocationType, logType, payload, qualifier, clientContext)
         }
         "deploy" -> {
             val stackName = options.binaryOptions["-stack-name"].value
