@@ -1,5 +1,4 @@
 import com.jfrog.bintray.gradle.BintrayExtension
-import com.star_zero.gradle.githook.GithookExtension
 import groovy.util.Node
 import groovy.util.NodeList
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
@@ -19,7 +18,7 @@ plugins {
 
 fun version(): String {
     val buildNumber = System.getProperty("BUILD_NUM")
-    val version = "0.1" + if (buildNumber.isNullOrEmpty()) "-SNAPSHOT" else ".$buildNumber"
+    val version = "1.0" + if (buildNumber.isNullOrEmpty()) "-SNAPSHOT" else ".$buildNumber"
     println("building version $version")
     return version
 }
@@ -42,8 +41,8 @@ dependencies {
     implementation("software.amazon.awssdk:s3:2.5.23")
     implementation("software.amazon.awssdk:lambda:2.5.23")
     runtime("org.slf4j:slf4j-simple:1.7.25")
-    testImplementation("io.kloudformation:kloudformation:0.1.119")
-    testImplementation("io.hexlabs:kloudformation-s3-module:0.1.9")
+    testImplementation("io.kloudformation:kloudformation:1.0.3")
+    testImplementation("io.hexlabs:kloudformation-s3-module:1.0.10")
     testImplementation(group = "org.jetbrains.kotlin", name = "kotlin-test-junit5", version = "1.3.21")
     testImplementation(group = "org.junit.jupiter", name = "junit-jupiter-api", version = "1.3.21")
     testRuntime(group = "org.junit.jupiter", name = "junit-jupiter-engine", version = "5.0.0")

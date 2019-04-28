@@ -25,12 +25,20 @@ jobs:
         key: gradle-{{ checksum "build.gradle.kts" }}
 
     - run:
+        name: Update Version Number in Scripts
+        command: awk -v CIRCLE_BUILD_NUM=${CIRCLE_BUILD_NUM} '{sub(/XXXXX/, CIRCLE_BUILD_NUM)}1' kloudformation.sh > temp.sh && mv temp.sh kloudformation.sh && chmod +x kloudformation.sh
+
+    - run:
+        name: Move Jar into kloudformation
+        command: mkdir -p ~/.kloudformation && mv build/libs/kloudformation-runner-1.0.${CIRCLE_BUILD_NUM}-uber.jar ~/.kloudformation/kloudformation-runner-1.0.${CIRCLE_BUILD_NUM}-all.jar
+
+    - run:
         name: Authenticate with NPM registry
         command: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > .npmrc
 
     - run:
         name: Update NPM package version
-        command: npm --no-git-tag-version version -f 0.1.${CIRCLE_BUILD_NUM}
+        command: npm --no-git-tag-version version -f 1.0.${CIRCLE_BUILD_NUM}
 
     - run:
         name: Publish NPM package
@@ -41,15 +49,8 @@ jobs:
         - kloudformation-{{ checksum "kloudformation.sh" }}
 
     - run:
-        name: Update Version Number in Scripts
-        command: awk -v CIRCLE_BUILD_NUM=${CIRCLE_BUILD_NUM} '{sub(/XXXXX/, CIRCLE_BUILD_NUM)}1' kloudformation.sh > temp.sh && mv temp.sh kloudformation.sh && chmod +x kloudformation.sh
-    - run:
-        name: Move Jar into kloudformation
-        command: mkdir -p ~/.kloudformation && mv build/libs/kloudformation-runner-0.1.${CIRCLE_BUILD_NUM}-uber.jar ~/.kloudformation/kloudformation-runner-0.1.${CIRCLE_BUILD_NUM}-all.jar
-
-    - run:
         name: Deploy Certificate Stack in US-EAST-1
-        command: ./kloudformation.sh deploy -region us-east-1 -stack-name kloudformation-runner-cert -stack-file stack/Stack.kt -stack-class CertInUsEast1 -template cert-stack.yml -m s3@0.1.9
+        command: ./kloudformation.sh deploy -region us-east-1 -stack-name kloudformation-runner-cert -stack-file stack/Stack.kt -stack-class CertInUsEast1 -template cert-stack.yml -m s3@1.0.10
 
     - save_cache:
         paths:
@@ -58,7 +59,7 @@ jobs:
 
     - run:
         name: Deploy Site Stack in EU-WEST-1
-        command: ./kloudformation.sh deploy -region eu-west-1 -stack-name kloudformation-runner-site -stack-file stack/Stack.kt -stack-class Site -template site-stack.yml -m s3@0.1.9
+        command: ./kloudformation.sh deploy -region eu-west-1 -stack-name kloudformation-runner-site -stack-file stack/Stack.kt -stack-class Site -template site-stack.yml -m s3@1.0.10
 
     - store_artifacts:
         path: cert-stack.yml

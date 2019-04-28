@@ -5,7 +5,7 @@ if [[ "$1" == "-local" ]]; then
     chmod +x kloudformation.sh
     echo "KloudFormation installed to ${pwd}/kloudformation.sh"
 
-    echo Installed Version now at `./kloudformation.sh version`
+    echo Installed Version now at `./kloudformation.sh version -q`
     ./kloudformation.sh help
 else
     mkdir -p /usr/local/bin/kloudformation-install

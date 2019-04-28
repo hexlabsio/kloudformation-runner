@@ -4,6 +4,7 @@ import io.kloudformation.StackBuilder
 import io.kloudformation.model.Output
 import io.kloudformation.property.aws.certificatemanager.certificate.DomainValidationOption
 import io.kloudformation.resource.aws.certificatemanager.certificate
+import io.kloudformation.unaryPlus
 
 const val certificateVariable = "InstallKloudFormationCertificate"
 const val domain = "install.kloudformation.hexlabs.io"
