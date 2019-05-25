@@ -41,7 +41,7 @@ dependencies {
     implementation("software.amazon.awssdk:s3:2.5.23")
     implementation("software.amazon.awssdk:lambda:2.5.23")
     runtime("org.slf4j:slf4j-simple:1.7.25")
-    testImplementation("io.kloudformation:kloudformation:1.0.3")
+    testImplementation("io.kloudformation:kloudformation:1.0.7")
     testImplementation("io.hexlabs:kloudformation-s3-module:1.0.10")
     testImplementation(group = "org.jetbrains.kotlin", name = "kotlin-test-junit5", version = "1.3.21")
     testImplementation(group = "org.junit.jupiter", name = "junit-jupiter-api", version = "1.3.21")
