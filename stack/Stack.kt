@@ -1,6 +1,7 @@
 import io.hexlabs.kloudformation.module.s3.s3Website
 import io.kloudformation.KloudFormation
 import io.kloudformation.StackBuilder
+import io.kloudformation.function.ImportValue
 import io.kloudformation.model.Output
 import io.kloudformation.property.aws.certificatemanager.certificate.DomainValidationOption
 import io.kloudformation.resource.aws.certificatemanager.certificate
@@ -20,13 +21,14 @@ class CertInUsEast1 : StackBuilder {
             validationMethod("DNS")
         }
         outputs(
-                certificateVariable to Output(certificate.ref(), export = Output.Export(+certificateVariable))
+            certificateVariable to Output(certificate.ref(), export = Output.Export(+certificateVariable))
         )
     }
 }
 
 class Site : StackBuilder {
     override fun KloudFormation.create(args: List<String>) {
+        val cert = ImportValue<String>(+certificateVariable)
         s3Website {
             s3Bucket {
                 bucketName("install-kloudformation")
@@ -36,8 +38,8 @@ class Site : StackBuilder {
                 }
             }
             s3Distribution(
-                    domain = +"install.kloudformation.hexlabs.io",
-                    certificateArn = +"arn:aws:acm:us-east-1:662158168835:certificate/bbb425c8-c79b-40bb-80a1-02d00f764dba"
+                    domain = +domain,
+                    certificateArn = cert
             )
         }
     }
