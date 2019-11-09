@@ -1,7 +1,6 @@
 import io.hexlabs.kloudformation.module.s3.s3Website
 import io.kloudformation.KloudFormation
 import io.kloudformation.StackBuilder
-import io.kloudformation.function.ImportValue
 import io.kloudformation.model.Output
 import io.kloudformation.property.aws.certificatemanager.certificate.DomainValidationOption
 import io.kloudformation.resource.aws.certificatemanager.certificate
