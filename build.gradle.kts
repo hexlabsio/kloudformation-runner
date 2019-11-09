@@ -96,7 +96,7 @@ artifacts {
 }
 
 bintray {
-    user = "hexlabs-builder"
+    user = "chrisbarbour"
     key = System.getProperty("BINTRAY_KEY") ?: "UNKNOWN"
     setPublications("mavenJava")
     publish = true
