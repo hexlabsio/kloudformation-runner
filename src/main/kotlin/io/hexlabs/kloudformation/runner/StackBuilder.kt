@@ -143,8 +143,7 @@ class StackBuilder(val region: String, val client: CloudFormationClient = CloudF
         currentResources.forEach { resource ->
             val oldVersion = previousResources.find { it.logicalResourceId() == resource.logicalResourceId() }
             if (oldVersion != null) {
-                if (oldVersion.resourceStatus() != resource.resourceStatus() || (oldVersion.resourceStatusReason() != resource.resourceStatusReason() && resource.resourceStatusReason() != null))
-                    print(resource)
+                if (oldVersion.timestamp() != resource.timestamp()) print(resource)
             } else print(resource)
         }
         previousResources.filter { resource -> currentResources.find { it.logicalResourceId() == resource.logicalResourceId() } == null }
