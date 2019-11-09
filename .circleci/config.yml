@@ -65,22 +65,25 @@ jobs:
 
     - run:
         name: Deploy Certificate Stack in US-EAST-1
-        command: ./kloudformation.sh deploy -region us-east-1 -stack-name kloudformation-runner-cert -stack-file stack/Stack.kt -stack-class CertInUsEast1 -template cert-stack.yml -m s3@1.0.11
+        command: ./kloudformation.sh deploy -region us-east-1 -stack-name kloudformation-runner-cert -stack-file stack/Stack.kt -stack-class CertInUsEast1 -template cert-stack.yml -m s3@1.0.11 --output certoutputs.txt
 
-    - save_cache:
-        paths:
-        - ~/.kloudformation
-        key: kloudformation-{{ checksum "kloudformation.sh" }}
+    - store_artifacts:
+        path: certoutputs.txt
 
     - run:
         name: Deploy Site Stack in EU-WEST-1
-        command: ./kloudformation.sh deploy -region eu-west-1 -stack-name kloudformation-runner-site -stack-file stack/Stack.kt -stack-class Site -template site-stack.yml -m s3@1.0.11
+        command: source ./certoutputs.txt; ./kloudformation.sh deploy -region eu-west-1 -stack-name kloudformation-runner-site -stack-file stack/Stack.kt -stack-class Site -template site-stack.yml -m s3@1.0.11 -a $InstallKloudFormationCertificate
 
     - store_artifacts:
         path: cert-stack.yml
 
     - store_artifacts:
         path: site-stack.yml
+
+    - save_cache:
+        paths:
+          - ~/.kloudformation
+        key: kloudformation-{{ checksum "kloudformation.sh" }}
 
     - run:
         name: Move Files

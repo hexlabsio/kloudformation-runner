@@ -21,14 +21,14 @@ class CertInUsEast1 : StackBuilder {
             validationMethod("DNS")
         }
         outputs(
-            certificateVariable to Output(certificate.ref(), export = Output.Export(+certificateVariable))
+            certificateVariable to Output(certificate.ref())
         )
     }
 }
 
 class Site : StackBuilder {
     override fun KloudFormation.create(args: List<String>) {
-        val cert = ImportValue<String>(+certificateVariable)
+        val cert = args.first()
         s3Website {
             s3Bucket {
                 bucketName("install-kloudformation")
@@ -39,7 +39,7 @@ class Site : StackBuilder {
             }
             s3Distribution(
                     domain = +domain,
-                    certificateArn = cert
+                    certificateArn = +cert
             )
         }
     }
