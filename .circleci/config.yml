@@ -5,6 +5,17 @@ workflows:
     jobs:
       - build:
           context: hexlabs-aws
+  nightly:
+    triggers:
+      - schedule:
+          cron: "0 0 * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - build:
+          context: hexlabs-aws
 jobs:
   build:
     machine:
