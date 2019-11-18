@@ -83,7 +83,7 @@ jobs:
 
     - run:
         name: Deploy Site Stack in EU-WEST-1
-        command: source ./certoutputs.txt; ./kloudformation.sh deploy -region eu-west-1 -stack-name kloudformation-runner-site -stack-file stack/Stack.kt -stack-class Site -template site-stack.yml -m s3@1.0.11 -a $InstallKloudFormationCertificate
+        command: ./kloudformation.sh deploy -region eu-west-1 -stack-name kloudformation-runner-site -stack-file stack/Stack.kt -stack-class Site -template site-stack.yml -m s3@1.0.11 -a $InstallKloudFormationCertificate
 
     - store_artifacts:
         path: cert-stack.yml
