@@ -27,7 +27,7 @@ class CertInUsEast1 : StackBuilder {
 
 class Site : StackBuilder {
     override fun KloudFormation.create(args: List<String>) {
-        val cert = args.first()
+        val cert = "arn:aws:acm:us-east-1:662158168835:certificate/bbb425c8-c79b-40bb-80a1-02d00f764dba"
         s3Website {
             s3Bucket {
                 bucketName("install-kloudformation")
