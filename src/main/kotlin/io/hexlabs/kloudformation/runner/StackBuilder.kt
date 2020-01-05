@@ -114,23 +114,25 @@ class StackBuilder(val region: String, val client: CloudFormationClient = CloudF
         try {
             if (stackExistsWith(stackName)) update(stackName, template)
             else create(stackName, template)
-            val result = waitFor(stackName, successStatuses)
-            if (result.success) {
-                println()
-                println("Stack Update Complete")
-                println()
-                result.stack?.outputs().orEmpty().forEach {
-                    println("${it.outputKey()}: ${it.outputValue()}")
-                }
-                println()
-                return OutputInfo(result.stack?.outputs().orEmpty().map { it.outputKey() to it.outputValue() }.toMap())
-            } else {
-                System.err.println()
-                System.err.println("Stack Update Failure")
-                System.err.println()
-                System.exit(1)
+        } catch (error: CloudFormationException) {
+            handle(error)
+        }
+        val result = waitFor(stackName, successStatuses)
+        if (result.success) {
+            println()
+            println("Stack Update Complete")
+            println()
+            result.stack?.outputs().orEmpty().forEach {
+                println("${it.outputKey()}: ${it.outputValue()}")
             }
-        } catch (error: CloudFormationException) { handle(error) }
+            println()
+            return OutputInfo(result.stack?.outputs().orEmpty().map { it.outputKey() to it.outputValue() }.toMap())
+        } else {
+            System.err.println()
+            System.err.println("Stack Update Failure")
+            System.err.println()
+            System.exit(1)
+        }
         return null
     }
 
