@@ -77,6 +77,10 @@ fun main(args: Array<String>) {
             val payload = options.binaryOptions.notRequired("-payload")?.value
             LambdaInvoker(region).invokeLambda(functionName, invocationType, logType, payload, qualifier, clientContext)
         }
+        "outputs" -> {
+            options.binaryOptions["-stacks"].value.split(",")
+                .forEach { println(StackFinder(region).listOutputsFor(it)) }
+        }
         "deploy" -> {
             val stackName = options.binaryOptions["-stack-name"].value
             val templateFile = File(options.binaryOptions["-template"].value)
