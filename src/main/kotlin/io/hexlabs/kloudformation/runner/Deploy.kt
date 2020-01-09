@@ -79,7 +79,10 @@ fun main(args: Array<String>) {
         }
         "outputs" -> {
             options.binaryOptions["-stacks"].value.split(",")
-                .forEach { println(StackFinder(region).listOutputsFor(it)) }
+                .forEach { stack ->
+                    val stackRegion = if(stack.contains(':')) stack.substringBefore(':') else region
+                    println(StackFinder(stackRegion).listOutputsFor(stack.substringAfter(':')))
+                 }
         }
         "deploy" -> {
             val stackName = options.binaryOptions["-stack-name"].value

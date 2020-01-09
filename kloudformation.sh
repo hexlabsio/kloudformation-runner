@@ -2,8 +2,8 @@
 
 KOTLIN_VERSION="1.3.21"
 KOTLIN_LIBRARIES=("stdlib" "stdlib-common" "stdlib-jdk8" "reflect")
-RUNNER_VERSION="1.0.XXXXX"
-DEFAULT_VERSION="YYYYY"
+RUNNER_VERSION="1.0.142"
+DEFAULT_VERSION="1.1.117"
 VERSION=${DEFAULT_VERSION}
 INSTALL_DIRECTORY=~/.kloudformation
 
@@ -41,6 +41,9 @@ MODULE_ARG=("-module" "array" "MODULES" "Includes a KloudFormation Module Named 
 EXTRAS_ARG_ARG=("-arg" "array" "EXTRA_ARGS")
 A_ARG=("-a" "array" "EXTRA_ARGS")
 
+STACKS_ARG_ARG=("-stack-outputs" "array" "STACKS_ARGS")
+S_ARG=("-s" "array" "STACKS_ARGS")
+
 M_ARG=("-m" "array" "MODULES")
 QUITE_ARG=("-quite" "toggle" "QUITE")
 Q_ARG=("-q" "toggle" "QUITE")
@@ -48,7 +51,7 @@ FORCE_ARG=("-force" "toggle" "FORCE")
 F_ARG=("-f" "toggle" "FORCE")
 JSON_ARG=("-json" "toggle" "JSON")
 
-TRANSPILE_ARGS=("STACK_FILE_ARG" "STACK_CLASS_ARG" "TEMPLATE_NAME_ARG" "JSON_ARG")
+TRANSPILE_ARGS=("STACK_FILE_ARG" "STACK_CLASS_ARG" "TEMPLATE_NAME_ARG" "JSON_ARG" "STACKS_ARG_ARG" "S_ARG")
 INVERT_ARGS=("STACK_FILE_ARG" "TEMPLATE_NAME_ARG")
 COMMON_ARGS=("QUITE_ARG" "MODULE_ARG" "VERSION_ARG" "INSTALL_DIRECTORY_ARG" "REGION_ARG" "EXTRAS_ARG_ARG")
 SHORT_ARGS=("Q_ARG" "M_ARG" "V_ARG" "R_ARG" "F_ARG" "A_ARG")
@@ -64,6 +67,7 @@ ARGUMENTS=(${COMMON_ARGS[@]} ${TRANSPILE_ARGS[@]} ${SHORT_ARGS[@]} ${UPLOAD_ARGS
 COMMANDS=("help" "transpile" "init" "version" "update"  "deploy" "invert" "idea" "delete" "list" "upload" "invoke")
 
 EXTRA_ARGS=()
+STACKS_ARGS=()
 
 SELECTED_COMMAND="transpile"
 
@@ -395,6 +399,17 @@ downloadClasspath() {
     cd ${CURRENT_DIR}
 }
 
+setEnvironment() {
+    for OUTPUT in $@; do
+        IFS='='
+        read -ra KEYVALUE <<< "$OUTPUT"
+        IFS=' '
+        export ${KEYVALUE[0]}=${KEYVALUE[1]}
+    done
+}
+
+join_by() { local IFS="$1"; shift; echo "$*"; }
+
 transpile() {
     log_arguments ${TRANSPILE_ARGS[@]}
     log
@@ -402,8 +417,12 @@ transpile() {
     log
     if [[ ! -f "${STACK_FILE}" ]]; then error Could not find ${STACK_FILE}; fi
     downloadClasspath
+    kloudformationRunnerJar
     local JSON_YAML=yaml
     if [[ ! -z "$JSON" ]]; then JSON_YAML=json; fi
+    local STACKS=`join_by , ${STACKS_ARGS[@]}`
+    local OUTPUTS=( $("$JAVA" -jar ${INSTALL_DIRECTORY}/kloudformation-runner-${RUNNER_VERSION}-all.jar outputs ${REGION_ARG[0]} "$REGION" -stacks ${STACKS}) )
+    setEnvironment ${OUTPUTS[@]}
     "$KOTLIN" -classpath ${CLASSPATH} "$STACK_FILE" -include-runtime -d ${INSTALL_DIRECTORY}/stack.jar
     "$JAVA" -classpath ${INSTALL_DIRECTORY}/stack.jar:${CLASSPATH} io.kloudformation.StackBuilderKt "$STACK_CLASS" "$TEMPLATE_NAME" "$JSON_YAML" $@
     log
