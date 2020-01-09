@@ -29,11 +29,11 @@ jobs:
         - gradle-{{ checksum "build.gradle.kts" }}
 
     - run:
-        name: Gradle Clean
+        name: Gradle Build
         command: ./gradlew clean build -DBUILD_NUM=$CIRCLE_BUILD_NUM
 
     - run:
-        name: Gradle Build and Upload
+        name: Gradle Upload
         command: ./gradlew bintrayUpload -DBUILD_NUM=$CIRCLE_BUILD_NUM -DBINTRAY_KEY=$BINTRAY_KEY
 
     - save_cache:

@@ -80,9 +80,9 @@ fun main(args: Array<String>) {
         "outputs" -> {
             options.binaryOptions["-stacks"].value.split(",")
                 .forEach { stack ->
-                    val stackRegion = if(stack.contains(':')) stack.substringBefore(':') else region
-                    println(StackFinder(stackRegion).listOutputsFor(stack.substringAfter(':')))
-                 }
+                        val stackRegion = if (stack.contains(':')) stack.substringBefore(':') else region
+                        println(StackFinder(stackRegion).listOutputsFor(stack.substringAfter(':')))
+                    }
         }
         "deploy" -> {
             val stackName = options.binaryOptions["-stack-name"].value
