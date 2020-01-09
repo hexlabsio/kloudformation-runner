@@ -28,7 +28,7 @@ class CertInUsEast1 : StackBuilder {
 
 class Site : StackBuilder {
     override fun KloudFormation.create(args: List<String>) {
-        val cert = System.getenv(certificateVariable) ?: throw IllegalArgumentException("No Certificate Variable")
+        val cert = parameter<String>("Certificate", default = System.getenv(certificateVariable) ?: throw IllegalArgumentException("No Certificate Variable"))
         s3Website {
             s3Bucket {
                 bucketName("install-kloudformation")
@@ -39,7 +39,7 @@ class Site : StackBuilder {
             }
             s3Distribution(
                     domain = +domain,
-                    certificateArn = +cert
+                    certificateArn = cert.ref()
             )
         }
     }
