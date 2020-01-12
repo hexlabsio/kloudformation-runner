@@ -78,10 +78,15 @@ fun main(args: Array<String>) {
             LambdaInvoker(region).invokeLambda(functionName, invocationType, logType, payload, qualifier, clientContext)
         }
         "outputs" -> {
+            val stackOutputFile = options.binaryOptions.notRequired("-stack-output-file")?.let { File(it.value).also { it.parentFile?.mkdirs() } }
             options.binaryOptions.notRequired("-stacks")?.value?.split(",")
                 ?.forEach { stack ->
                         val stackRegion = if (stack.contains(':')) stack.substringBefore(':') else region
-                        println(StackFinder(stackRegion).listOutputsFor(stack.substringAfter(':')))
+                        val output = StackFinder(stackRegion).listOutputsFor(stack.substringAfter(':'))
+                        stackOutputFile?.let {
+                            stackOutputFile.writeText(output)
+                        }
+                        println(output)
                     }
         }
         "deploy" -> {

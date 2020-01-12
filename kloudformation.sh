@@ -36,6 +36,8 @@ QUALIFIER_ARG=("-qualifier" "arg" "QUALIFIER")
 CONTEXT_ARG=("-context" "arg" "CONTEXT")
 PAYLOAD_ARG=("-payload" "arg" "PAYLOAD")
 OUTPUT_ARG=("-output" "arg" "OUTPUT")
+STACK_OUTPUTS_FILE_ARG=("-stack-outputs-file" "arg" "STACK_OUTPUTS_FILE")
+SF_ARG=("-sf" "arg" "STACK_OUTPUTS_FILE")
 
 MODULE_ARG=("-module" "array" "MODULES" "Includes a KloudFormation Module Named kloudformation-<<Module>>-module")
 EXTRAS_ARG_ARG=("-arg" "array" "EXTRA_ARGS")
@@ -51,10 +53,10 @@ FORCE_ARG=("-force" "toggle" "FORCE")
 F_ARG=("-f" "toggle" "FORCE")
 JSON_ARG=("-json" "toggle" "JSON")
 
-TRANSPILE_ARGS=("STACK_FILE_ARG" "STACK_CLASS_ARG" "TEMPLATE_NAME_ARG" "JSON_ARG" "STACKS_ARG_ARG" "S_ARG")
+TRANSPILE_ARGS=("STACK_FILE_ARG" "STACK_CLASS_ARG" "TEMPLATE_NAME_ARG" "JSON_ARG" "STACKS_ARG_ARG" "STACK_OUTPUTS_FILE_ARG")
 INVERT_ARGS=("STACK_FILE_ARG" "TEMPLATE_NAME_ARG")
 COMMON_ARGS=("QUITE_ARG" "MODULE_ARG" "VERSION_ARG" "INSTALL_DIRECTORY_ARG" "REGION_ARG" "EXTRAS_ARG_ARG")
-SHORT_ARGS=("Q_ARG" "M_ARG" "V_ARG" "R_ARG" "F_ARG" "A_ARG")
+SHORT_ARGS=("Q_ARG" "M_ARG" "V_ARG" "R_ARG" "F_ARG" "A_ARG" "S_ARG" "SF_ARG")
 UPLOAD_ARGS=("BUCKET_ARG")
 UPLOAD_NOT_REQUIRED_ARGS=("KEY_ARG" "LOCATION_ARG")
 DEPLOY_ARGS=("STACK_NAME_ARG" ${TRANSPILE_ARGS[@]})
@@ -420,8 +422,10 @@ transpile() {
     kloudformationRunnerJar
     local JSON_YAML=yaml
     if [[ ! -z "$JSON" ]]; then JSON_YAML=json; fi
+    if [[ ! -z "$STACK_OUTPUTS_FILE" ]]; then OUTPUTSTACKOUTPUTARG='-stack-output-file '${STACK_OUTPUTS_FILE}; fi
     local STACKS=`join_by , ${STACKS_ARGS[@]}`
-    local OUTPUTS=( $("$JAVA" -jar ${INSTALL_DIRECTORY}/kloudformation-runner-${RUNNER_VERSION}-all.jar outputs ${REGION_ARG[0]} "$REGION" -stacks ${STACKS}) )
+    log ${OUTPUTSTACKOUTPUTARG}
+    local OUTPUTS=( $("$JAVA" -jar ${INSTALL_DIRECTORY}/kloudformation-runner-${RUNNER_VERSION}-all.jar outputs ${REGION_ARG[0]} "$REGION" -stacks ${STACKS} ${OUTPUTSTACKOUTPUTARG}) )
     setEnvironment ${OUTPUTS[@]}
     "$KOTLIN" -classpath ${CLASSPATH} "$STACK_FILE" -include-runtime -d ${INSTALL_DIRECTORY}/stack.jar
     "$JAVA" -classpath ${INSTALL_DIRECTORY}/stack.jar:${CLASSPATH} io.kloudformation.StackBuilderKt "$STACK_CLASS" "$TEMPLATE_NAME" "$JSON_YAML" $@
