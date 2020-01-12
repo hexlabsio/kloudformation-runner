@@ -80,14 +80,16 @@ fun main(args: Array<String>) {
         "outputs" -> {
             val stackOutputFile = options.binaryOptions.notRequired("-stack-output-file")?.let { File(it.value).also { it.parentFile?.mkdirs() } }
             options.binaryOptions.notRequired("-stacks")?.value?.split(",")
-                ?.forEach { stack ->
+                ?.map { stack ->
                         val stackRegion = if (stack.contains(':')) stack.substringBefore(':') else region
                         val output = StackFinder(stackRegion).listOutputsFor(stack.substringAfter(':'))
-                        stackOutputFile?.let {
-                            stackOutputFile.writeText(output)
-                        }
                         println(output)
+                        output
+                    }?.let { lines ->
+                    stackOutputFile?.let {
+                        stackOutputFile.writeText(lines.joinToString("\n"))
                     }
+                }
         }
         "deploy" -> {
             val stackName = options.binaryOptions["-stack-name"].value
