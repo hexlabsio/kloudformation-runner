@@ -36,7 +36,7 @@ jobs:
 #        run: ./gradlew bintrayUpload -DBUILD_NUM=$CIRCLE_BUILD_NUM -DBINTRAY_KEY=$BINTRAY_KEY
 
       - name: Update Runner Version
-        run: awk -v '{sub(/XXXXX/, BUILD_NUMBER)}1' kloudformation.sh > temp.sh && mv temp.sh kloudformation.sh && chmod +x kloudformation.sh
+        run: sed -i 's/XXXXX/'${BUILD_NUMBER}'/' kloudformation.sh
 
       - name: Update Kloudformation Version Number
         run: |
@@ -44,7 +44,7 @@ jobs:
             'https://api.bintray.com/packages/hexlabsio/kloudformation/kloudformation/versions/_latest?attribute_values=1' \
             -u chrisbarbour:${{ secrets.BINTRAY_TOKEN }} | python -c "import sys, json; print json.load(sys.stdin)['name']"`; \
           echo Found Latest version of Kloudformation to be $VERSION;\
-          awk -v KLOUDFORMATION_VERSION=${VERSION} '{sub(/YYYYY/, KLOUDFORMATION_VERSION)}1' kloudformation.sh > temp.sh && mv temp.sh kloudformation.sh && chmod +x kloudformation.sh
+          sed -i 's/YYYYY/'${VERSION}'/' kloudformation.sh
 
       - name: Use Version of Runner
         run: mkdir -p ~/.kloudformation && mv build/libs/kloudformation-runner-1.0.${CIRCLE_BUILD_NUM}-uber.jar ~/.kloudformation/kloudformation-runner-1.0.${CIRCLE_BUILD_NUM}-all.jar
