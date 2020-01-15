@@ -12,5 +12,5 @@ jobs:
         with:
           token: ${{ secrets.github_token }}
           prefix: ${{ github.ref }}
-        run:
-          echo BUILD NUMBER IS ${{ steps.buildnumber.outputs.build_number }}
+      - name: LOG
+        run: echo BUILD NUMBER IS ${{ steps.buildnumber.outputs.build_number }}
