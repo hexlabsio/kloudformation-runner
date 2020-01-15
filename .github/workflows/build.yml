@@ -13,6 +13,7 @@ jobs:
       matrix:
         python-version: [3.x]
     steps:
+      - uses: actions/checkout@v1
       - name: Generate build number
         id: buildnumber
         uses: einaregilsson/build-number@v2
