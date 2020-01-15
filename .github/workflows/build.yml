@@ -1,10 +1,15 @@
 name: Build
-
-on: [push]
+on:
+  schedule:
+    - push
+    - cron: "0 0 * * *"
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.x]
     steps:
       - name: Generate build number
         id: buildnumber
@@ -12,5 +17,49 @@ jobs:
         with:
           token: ${{ secrets.github_token }}
           prefix: ${{ github.ref }}
-      - name: LOG
-        run: echo BUILD NUMBER IS ${{ steps.buildnumber.outputs.build_number }}
+
+      - name: Setup python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          node-version: ${{ matrix.python-version }}
+
+      - name: Install AWS CLI
+        run: pip3 install awscli --target ~/aws-cli
+
+      - name: Gradle Build
+        run: ./gradlew clean build -DBUILD_NUM=${{ steps.buildnumber.outputs.build_number }}
+
+#      - name: Upload
+#        run: ./gradlew bintrayUpload -DBUILD_NUM=$CIRCLE_BUILD_NUM -DBINTRAY_KEY=$BINTRAY_KEY
+
+      - name: Update Runner Version
+        run: awk -v '{sub(/XXXXX/, BUILD_NUMBER)}1' kloudformation.sh > temp.sh && mv temp.sh kloudformation.sh && chmod +x kloudformation.sh
+
+      - name: Update Kloudformation Version Number
+        run: |
+          VERSION=`curl -X GET \
+            'https://api.bintray.com/packages/hexlabsio/kloudformation/kloudformation/versions/_latest?attribute_values=1' \
+            -u chrisbarbour:${{ secrets.BINTRAY_TOKEN }} | python -c "import sys, json; print json.load(sys.stdin)['name']"`; \
+          echo Found Latest version of Kloudformation to be $VERSION;\
+          awk -v KLOUDFORMATION_VERSION=${VERSION} '{sub(/YYYYY/, KLOUDFORMATION_VERSION)}1' kloudformation.sh > temp.sh && mv temp.sh kloudformation.sh && chmod +x kloudformation.sh
+
+      - name: Use Version of Runner
+        run: mkdir -p ~/.kloudformation && mv build/libs/kloudformation-runner-1.0.${CIRCLE_BUILD_NUM}-uber.jar ~/.kloudformation/kloudformation-runner-1.0.${CIRCLE_BUILD_NUM}-all.jar
+
+      - name: Deploy Certificate Stack
+        run: ./kloudformation.sh deploy -region us-east-1 -stack-name kloudformation-runner-cert -stack-file stack/Stack.kt -stack-class CertInUsEast1 -template cert-stack.yml -m s3@1.1.12
+
+      - name: Deploy Website
+        run: ./kloudformation.sh deploy -region eu-west-1 -stack-name kloudformation-runner-site -stack-file stack/Stack.kt -stack-class Site -template site-stack.yml -m s3@1.1.12 -s us-east-1:kloudformation-runner-cert
+
+      - name: Move Files
+        run: |
+          mkdir s3
+          mv install-kloudformation.sh s3
+          mv kloudformation.sh s3
+
+      - name: Sync Files with S3
+        run: aws s3 sync ./s3 s3://install-kloudformation/
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
