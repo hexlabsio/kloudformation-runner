@@ -33,7 +33,7 @@ jobs:
         run: ./gradlew clean build -DBUILD_NUM=${{ steps.buildnumber.outputs.build_number }}
 
 #      - name: Upload
-#        run: ./gradlew bintrayUpload -DBUILD_NUM=$CIRCLE_BUILD_NUM -DBINTRAY_KEY=$BINTRAY_KEY
+#        run: ./gradlew bintrayUpload -DBUILD_NUM=${{ steps.buildnumber.outputs.build_number }} -DBINTRAY_KEY=${{ secrets.BINTRAY_TOKEN }}
 
       - name: Update Runner Version
         run: sed -i 's/XXXXX/'${BUILD_NUMBER}'/' kloudformation.sh
@@ -42,7 +42,7 @@ jobs:
         run: |
           VERSION=`curl -X GET \
             'https://api.bintray.com/packages/hexlabsio/kloudformation/kloudformation/versions/_latest?attribute_values=1' \
-            -u chrisbarbour:${{ secrets.BINTRAY_TOKEN }} | python -c "import sys, json; print json.load(sys.stdin)['name']"`; \
+            -u hexlabs-builder:${{ secrets.BINTRAY_TOKEN }} | python -c "import sys, json; print json.load(sys.stdin)['name']"`; \
           echo Found Latest version of Kloudformation to be $VERSION;\
           sed -i 's/YYYYY/'${VERSION}'/' kloudformation.sh
 
