@@ -18,7 +18,7 @@ plugins {
 
 fun version(): String {
     val buildNumber = System.getProperty("BUILD_NUM")
-    val version = "1.0" + if (buildNumber.isNullOrEmpty()) "-SNAPSHOT" else ".$buildNumber"
+    val version = "1.1" + if (buildNumber.isNullOrEmpty()) "-SNAPSHOT" else ".$buildNumber"
     println("building version $version")
     return version
 }
