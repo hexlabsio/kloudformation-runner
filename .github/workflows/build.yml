@@ -35,17 +35,14 @@ jobs:
       - name: Upload
         run: ./gradlew bintrayUpload -DBUILD_NUM=${{ steps.buildnumber.outputs.build_number }} -DBINTRAY_KEY=${{ secrets.BINTRAY_TOKEN }}
 
-      - run:
-        name: Authenticate with NPM registry
-        command: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
+      - name: Authenticate with NPM registry
+        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
 
-      - run:
-          name: Update NPM package version
-          command: npm --no-git-tag-version version -f 1.1.${{ steps.buildnumber.outputs.build_number }}
+      - name: Update NPM package version
+        command: npm --no-git-tag-version version -f 1.1.${{ steps.buildnumber.outputs.build_number }}
 
-      - run:
-          name: Publish NPM package
-          command: npm publish --access public
+      - name: Publish NPM package
+        run: npm publish --access public
 
       - name: Update Runner Version
         run: sed -i 's/XXXXX/'${BUILD_NUMBER}'/' kloudformation.sh
