@@ -51,9 +51,15 @@ jobs:
 
       - name: Deploy Certificate Stack
         run: ./kloudformation.sh deploy -region us-east-1 -stack-name kloudformation-runner-cert -stack-file stack/Stack.kt -stack-class CertInUsEast1 -template cert-stack.yml -m s3@1.1.12
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Deploy Website
         run: ./kloudformation.sh deploy -region eu-west-1 -stack-name kloudformation-runner-site -stack-file stack/Stack.kt -stack-class Site -template site-stack.yml -m s3@1.1.12 -s us-east-1:kloudformation-runner-cert
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Move Files
         run: |
