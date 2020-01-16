@@ -44,7 +44,7 @@ jobs:
             'https://api.bintray.com/packages/hexlabsio/kloudformation/kloudformation/versions/_latest?attribute_values=1' \
             -u hexlabs-builder:${{ secrets.BINTRAY_TOKEN }}`; \
           echo Found Latest version of Kloudformation to be $VERSION;\
-          if [[ "${VERSION}" =~ \"name\":\"([\.0-9]+)\" ]]; then echo sed -i 's/YYYYY/'${BASH_REMATCH[1]}'/' kloudformation.sh; fi
+          if [[ "${VERSION}" =~ \"name\":\"([\.0-9]+)\" ]]; then sed -i 's/YYYYY/'${BASH_REMATCH[1]}'/' kloudformation.sh; else exit 1; fi
 
       - name: Use Version of Runner
         run: mkdir -p ~/.kloudformation && mv build/libs/kloudformation-runner-1.0.${{ steps.buildnumber.outputs.build_number }}-uber.jar ~/.kloudformation/kloudformation-runner-1.0.${{ steps.buildnumber.outputs.build_number }}-all.jar
