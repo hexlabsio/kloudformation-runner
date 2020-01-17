@@ -402,9 +402,9 @@ downloadClasspath() {
 }
 
 setEnvironment() {
-    for OUTPUT in $@; do
+    for OUTPUTVALUES in $@; do
         IFS='='
-        read -ra KEYVALUE <<< "$OUTPUT"
+        read -ra KEYVALUE <<< "$OUTPUTVALUES"
         IFS=' '
         export ${KEYVALUE[0]}=${KEYVALUE[1]}
     done
