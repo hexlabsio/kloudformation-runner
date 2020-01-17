@@ -56,7 +56,7 @@ jobs:
           if [[ "${VERSION}" =~ \"name\":\"([\.0-9]+)\" ]]; then sed -i 's/YYYYY/'${BASH_REMATCH[1]}'/' kloudformation.sh; else exit 1; fi
 
       - name: Use Version of Runner
-        run: mkdir -p ~/.kloudformation && mv build/libs/kloudformation-runner-1.0.${{ steps.buildnumber.outputs.build_number }}-uber.jar ~/.kloudformation/kloudformation-runner-1.0.${{ steps.buildnumber.outputs.build_number }}-all.jar
+        run: mkdir -p ~/.kloudformation && mv build/libs/kloudformation-runner-1.1.${{ steps.buildnumber.outputs.build_number }}-uber.jar ~/.kloudformation/kloudformation-runner-1.1.${{ steps.buildnumber.outputs.build_number }}-all.jar
 
       - name: Deploy Certificate Stack
         run: ./kloudformation.sh deploy -region us-east-1 -stack-name kloudformation-runner-cert -stack-file stack/Stack.kt -stack-class CertInUsEast1 -template cert-stack.yml -m s3@1.1.12
