@@ -96,7 +96,7 @@ artifacts {
 }
 
 bintray {
-    user = "chrisbarbour"
+    user = "gdownes"
     key = System.getProperty("BINTRAY_KEY") ?: "UNKNOWN"
     setPublications("mavenJava")
     publish = true
