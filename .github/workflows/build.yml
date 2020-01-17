@@ -67,7 +67,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Deploy Website
-        run: ./kloudformation.sh deploy -region eu-west-1 -stack-name kloudformation-runner-site -stack-file stack/Stack.kt -stack-class Site -template site-stack.yml -m s3@1.1.12 -s us-east-1:kloudformation-runner-cert
+        run: ./kloudformation.sh deploy -region eu-west-1 -stack-name kloudformation-runner-site -output deployOutput -stack-file stack/Stack.kt -stack-class Site -template site-stack.yml -m s3@1.1.12 -s us-east-1:kloudformation-runner-cert
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -80,6 +80,12 @@ jobs:
 
       - name: Sync Files with S3
         run: aws s3 sync ./s3 s3://install-kloudformation/
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Invalidate cloudfront cache
+        run: aws cloudfront create-invalidation --distribution-id $(grep DistributionId deployOutput | cut -c 16-) --paths "/*"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
