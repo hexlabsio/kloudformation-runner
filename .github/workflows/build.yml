@@ -45,7 +45,9 @@ jobs:
         run: npm publish --access public
 
       - name: Update Runner Version
-        run: sed -i 's/XXXXX/'${BUILD_NUMBER}'/' kloudformation.sh
+        run: |
+          sed -i 's/XXXXX/'${{ steps.buildnumber.outputs.build_number }}'/' kloudformation.sh
+          cat kloudformation.sh
 
       - name: Update Kloudformation Version Number
         run: |
